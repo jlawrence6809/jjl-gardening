@@ -5,6 +5,7 @@
 #include <Update.h>
 #include <soc/efuse_reg.h>
 
+#define VOLTAGE_33 3.3
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
 #define TIME_TO_SLEEP  10        /* Time ESP32 will go to sleep (in minutes) */
 #define WIFI_WAITS 120 // 0.5 seconds between each
@@ -35,10 +36,7 @@ float readADC(int pin){
     sum += analogRead(pin);
   }
   float v = sum / 10.0;
-  if(true){
-    return v;
-  }
-  v = (v / 4095) * 3.3;
+  v = (v / 4095) * VOLTAGE_33;
 
   //corrections
   if(sum == (4095*10)) {
@@ -63,7 +61,7 @@ float readADC(int pin){
 
 float setDAC(int v) {
   dacWrite(25, v);
-  float out = 3.3*(v/255.0);
+  float out = VOLTAGE_33*(v/255.0);
   // corrections
   if(chipid == DEVICE_1){
     return 0.932*out + 0.0842;
@@ -76,8 +74,8 @@ float setDAC(int v) {
   return -1;
 }
 
-float thermistorCalc(float v) {
-  float r = 10000.0*((3.3/v) - 1.0);
+float thermistorCalc(float a) {
+  float r = 10000.0*((VOLTAGE_33/a) - 1.0);
   // 3950 = beta, 298.15 = room temp
   float tKelvin = (3950 * 298.15) / 
             (3950 + (298.15 * log(r / 10000.0)));
@@ -176,6 +174,7 @@ void setup(void) {
     Serial.println("Failed to connect to wifi");
   }
 
+  Serial.println("Going to sleep");
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR * 60);
   delay(200);
   esp_deep_sleep_start();

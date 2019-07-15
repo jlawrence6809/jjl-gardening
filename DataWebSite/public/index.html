@@ -27,65 +27,36 @@
       xmlHttp.send(null);
 
       function drawChart(dataStr) {
-        let dataObj;
         try{
-          dataObj = JSON.parse(dataStr);
+          let tablesData = JSON.parse(dataStr);
+          Object.keys(tablesData).forEach( t => {
+            debugger;
+            let tableData = google.visualization.arrayToDataTable(tablesData[t]);
+
+            let options = {
+              title: t,
+              curveType: 'function',
+              // interpolateNulls: true,
+              legend: { position: 'bottom' }
+            };
+            let root = document.createElement("div");
+            root.id = t;
+            root.style = "width: 900px; height: 500px";
+            document.body.appendChild(root);
+
+            let chart = new google.visualization.LineChart(root);
+
+            chart.draw(tableData, options);
+          });
         } catch(e) {
+          console.log(e);
           console.log(dataStr);
           alert("Could not parse data!");
           return;
-        }
-
-        dataObj.forEach( d => {
-          try {
-            d.fields = eval("x = " + d.body);
-          } catch(e) {
-            console.log(d);
-            alert("Bad row!");
-            return;
-          }
-        });
-
-        let header = ['Time'];
-        let idToIdx = {};
-        dataObj.forEach( d => {
-          let idx = idToIdx[d.fields.id];
-          if(!idx){
-            header.push("0x" + d.fields.id.toString(16));
-            idx = header.length - 1;
-            idToIdx[d.fields.id] = idx;
-          }
-        });
-
-        let data = [header];
-        dataObj.forEach( d => {
-          let idx = idToIdx[d.fields.id];
-          let row = new Array(header.length).fill(null);
-          row[0] = new Date(d.time);
-          row[idx] = d.fields['a0'];
-          data.push(row);
-        });
-
-        try {
-          var tableData = google.visualization.arrayToDataTable(data);
-
-          var options = {
-            title: 'A0',
-            curveType: 'function',
-            interpolateNulls: true,
-            legend: { position: 'bottom' }
-          };
-
-          var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
-
-          chart.draw(tableData, options);
-        }catch(e){
-          console.log(e);
         }
       }
     </script>
   </head>
   <body>
-    <div id="curve_chart" style="width: 900px; height: 500px"></div>
   </body>
 </html>
