@@ -30,7 +30,15 @@
         try{
           let tablesData = JSON.parse(dataStr);
           Object.keys(tablesData).forEach( t => {
-            let tableData = google.visualization.arrayToDataTable(tablesData[t]);
+            let data = tablesData[t];
+            data.slice(1).forEach( d => {
+              let dt = new Date(d[0]);
+              d[0] = (dt.getMonth() + 1) + "/" + dt.getDate() + ":" + dt.getHours() + "." + dt.getMinutes(); 
+            });
+
+            let tableData = google.visualization.arrayToDataTable(data);
+            // let formatter_short = new google.visualization.DateFormat({formatType: 'short'});
+            // formatter_short.format(tableData);
 
             let options = {
               title: t,

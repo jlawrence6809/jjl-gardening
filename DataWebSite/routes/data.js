@@ -2,7 +2,8 @@ var fs = require('fs');
 var express = require('express');
 var router = express.Router();
 
-const LOG_ROOT = "/home/pi/logs/";
+// const LOG_ROOT = "/home/pi/logs/";
+const LOG_ROOT = "/Users/jeremy/code/gardening/DataWebSite/testlogs/";
 
 
 let GLOBAL_DATA = [];
@@ -16,14 +17,14 @@ let refreshData = () => {
 		.forEach(arr => arr.forEach(r => dataObj.push(r)));
 
 // for local dev
-// dataObj.forEach( d => {
- //      try {
- //        d.fields = eval("x = " + d.body);
- //      } catch(e) {
- //      	console.error('bad row!', d);
- //        return;
- //      }
- //    });
+	dataObj.forEach( d => {
+      try {
+        d.body = eval("x = " + d.body);
+      } catch(e) {
+      	console.error('bad row!', d);
+        return;
+      }
+    });
 
     let intIdToHex = (id) => "0x" + id.toString(16);
 
@@ -53,7 +54,7 @@ let refreshData = () => {
       Object.keys(tablesData).forEach( td => {
         let tableData = tablesData[td];
         let row = new Array(headers.length).fill(null);
-        row[0] = new Date(d.time);
+        row[0] = d.time;
         row[idx] = d.body[td];
         tableData.push(row);
       });
