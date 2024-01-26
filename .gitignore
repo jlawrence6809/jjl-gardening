@@ -1,0 +1,26 @@
+credentials.h
+# Compiled object and binary files
+*.o
+*.elf
+*.hex
+*.bin
+*.eep
+*.lss
+*.a
+*.ar
+*.d
+
+# Temporary files created by the IDE
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Backup files
+*~
+*.bak
+
+# Other files to ignore
+*.log
+*.tmp
+*.temp
