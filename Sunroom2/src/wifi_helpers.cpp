@@ -10,17 +10,15 @@
 
 static Timer timer(30000, false);
 
-static String ADDRESS = "";
-
 /**
  * Sets up the mDNS responder
  * This happens after wifi connection is established, or after AP mode is entered
  */
 void mDnsSetup()
 {
-    if (MDNS.begin(ADDRESS))
+    if (MDNS.begin(WIFI_NAME))
     {
-        Serial.println("MDNS responder started. Address: " + ADDRESS + ".local");
+        Serial.println("MDNS responder started. Address: " + String(WIFI_NAME) + ".local");
     }
 }
 
@@ -36,7 +34,7 @@ bool attemptWifiConnection()
     }
 
     Serial.println("Connecting to wifi...");
-    WiFi.mode(WIFI_STA);
+    // WiFi.mode(WIFI_STA);
     WiFi.begin(SSID.c_str(), PASSWORD.c_str());
 
     unsigned long start = millis();
@@ -64,9 +62,22 @@ void connectWifiOrEnterApMode()
     {
         Serial.println("Entering AP mode");
         WiFi.mode(WIFI_AP);
-        WiFi.softAP(ADDRESS);
+        WiFi.softAP(String(WIFI_NAME));
     }
     mDnsSetup();
+}
+
+bool ssidIsAvailable()
+{
+    int n = WiFi.scanNetworks();
+    for (int i = 0; i < n; ++i)
+    {
+        if (WiFi.SSID(i) == SSID)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 /**
@@ -95,23 +106,14 @@ void wifiCheckInLoop()
         return;
     }
 
-    // if in ap mode, don't try to reconnect
-    if (WiFi.getMode() == WIFI_AP)
-    {
-        return;
-    }
-
-    Serial.println("WiFi disconnected. Status: " + String(WiFi.status()));
-    connectWifiOrEnterApMode();
+    WiFi.begin(SSID.c_str(), PASSWORD.c_str());
 }
 
 void wifiSetup()
 {
-    // CHIP_ID is uint64_t, get the last two bytes as hex characters
-    String hex = String(CHIP_ID, HEX);
-    String lastByes = hex.substring(hex.length() - 4);
-    ADDRESS = "esp_" + lastByes;
-    // ADDRESS = "sunroom2";
-
-    connectWifiOrEnterApMode();
+    Serial.println("Entering AP mode");
+    WiFi.mode(WIFI_AP_STA);
+    WiFi.softAP(String(WIFI_NAME), String(AP_PASSWORD));
+    WiFi.begin(SSID.c_str(), PASSWORD.c_str());
+    mDnsSetup();
 }

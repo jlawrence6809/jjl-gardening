@@ -1,0 +1,83 @@
+html,
+body {
+  font: 14px/1.21 'Helvetica Neue', arial, sans-serif;
+  font-weight: 400;
+  /* dark background */
+  background-color: #282c34;
+  color: blanchedalmond;
+  padding-bottom: 50px;
+  margin: 0;
+}
+
+.app-root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+h1 {
+  text-align: center;
+}
+
+.GlobalInfo {
+  font-size: 1.2em;
+}
+
+.RelayForm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.RelayForm.loading {
+  pointer-events: none;
+}
+
+.WifiForm {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.Section {
+  /* divider */
+}
+
+.ToggleSwitch {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 200px;
+  height: 60px;
+  border-radius: 15px;
+  font-size: 1.5em;
+  cursor: pointer;
+}
+
+.ToggleSwitch.loading {
+  background-color: #ccc;
+}
+
+.ToggleSwitch.on {
+  background-color: green;
+}
+
+.ToggleSwitch.off {
+  background-color: red;
+}
+
+hr {
+  width: 100%;
+}
+
+label {
+  margin-right: 10px;
+}
+
+.hidden-input {
+  display: none;
+}

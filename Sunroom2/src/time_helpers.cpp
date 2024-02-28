@@ -108,3 +108,15 @@ String getLocalTimeString()
     getLocalTime(&timeinfo);
     return String(asctime(&timeinfo));
 }
+
+/**
+ * Formats the minutes into a string in the format HH:MM
+*/
+String formatTime(int minutes)
+{
+    int hour = minutes / 60;
+    int minute = minutes % 60;
+    String hourString = hour < 10 ? "0" + String(hour) : String(hour);
+    String minuteString = minute < 10 ? "0" + String(minute) : String(minute);
+    return hourString + ":" + minuteString;
+}

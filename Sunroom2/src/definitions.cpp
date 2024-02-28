@@ -1,8 +1,11 @@
 #include <Arduino.h>
+#include <map>
 // #include "credentials.h"
 
 // VARIABLES
-const char *APP_NAME = "PropagationBox";
+const char *WIFI_NAME = "sunroom3";
+
+const char *AP_PASSWORD = "esp32!";
 
 uint64_t CHIP_ID = 0;
 uint64_t DEVICE_1 = 0xa85627a4ae30;
@@ -28,3 +31,7 @@ float HUMIDITY_RANGE = -1;
 bool USE_NATURAL_LIGHTING_CYCLE = false;
 int TURN_LIGHTS_ON_AT_MINUTE = -1;
 int TURN_LIGHTS_OFF_AT_MINUTE = -1;
+
+std::map<int, bool> RELAY_VALUES;
+
+int RESET_COUNTER = 0;

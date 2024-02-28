@@ -4,7 +4,9 @@
 #include "definitions.h"
 #include "html_helpers.h"
 #include "analog_helpers.h"
+#include "time.h"
 #include "preferences_helpers.h"
+#include "time_helpers.h"
 
 WebServer server(80);
 
@@ -37,11 +39,14 @@ void handleRootGet()
 
     // clang-format off
     String content = createPage(APP_NAME,
-            createDiv("Current temperature: " + String(CURRENT_TEMPERATURE, 2) + "C")
+            createDiv("Chip Id: #" + String(CHIP_ID, HEX))
+            + createDiv("Current temperature: " + String(CURRENT_TEMPERATURE, 2) + "C")
             + createBreak()
             + createDiv("Current humidity: " + String(CURRENT_HUMIDITY, 2) + "%")
             + createBreak()
             + createDiv("Current probe temperature: " + String(CURRENT_PROBE_TEMPERATURE, 2) + "C")
+            + createBreak()
+            + createDiv("Current time: " + getLocalTimeString())
             + createBreak()
             + createDivider()
             + createDiv("Heat mat: " + String(IS_HEAT_MAT_ON ? "ON" : "OFF"))

@@ -1,5 +1,4 @@
 #include <Arduino.h>
-// #include "credentials.h"
 #include "definitions.h"
 #include "ds18b20.h"
 #include "temperatureMoisture.h"
@@ -9,7 +8,6 @@
 #include "preferences_helpers.h"
 #include "peripheral_controls.h"
 #include "time_helpers.h"
-#include "pwm_led.h"
 
 // look into: https://github.com/kj831ca/KasaSmartPlug
 
@@ -21,8 +19,7 @@ void setup(void)
   checkDeviceIdentityOnSetup();
   wifiSetup();
   serverSetup();
-  pwmLedSetup();
-  temperatureProbeSetup();
+  // temperatureProbeSetup();
   peripheralControlsSetup();
   Serial.println("~~~ SETUP FINISHED ~~~");
 }
@@ -32,8 +29,8 @@ void loop()
   wifiCheckInLoop();
   serverLoop();
   updateTimeLoop();
-  temperatureMoistureLoop();
-  temperatureProbeLoop();
+  // temperatureMoistureLoop();
+  // temperatureProbeLoop();
   controlPeripheralsLoop();
-  delay(100);
+  delay(10);
 }
