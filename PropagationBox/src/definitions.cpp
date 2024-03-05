@@ -4,6 +4,12 @@
 // VARIABLES
 const char *APP_NAME = "PropagationBox";
 
+// VARIABLES
+const char *WIFI_NAME = "propagationbox1";
+
+// Note: must be longer than 8 characters
+const char *AP_PASSWORD = "esp32iscool!";
+
 uint64_t CHIP_ID = 0;
 uint64_t DEVICE_1 = 0xa85627a4ae30;
 uint64_t DEVICE_2 = 0xc8216c12cfa4;
@@ -11,6 +17,8 @@ uint64_t DEVICE_3 = 0xe0286c12cfa4;
 
 String SSID = "";
 String PASSWORD = "";
+
+int RESET_COUNTER = 0;
 
 float CURRENT_TEMPERATURE = -1;
 float CURRENT_HUMIDITY = -1;

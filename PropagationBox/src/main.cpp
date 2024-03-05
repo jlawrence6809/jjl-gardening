@@ -13,6 +13,16 @@
 
 // look into: https://github.com/kj831ca/KasaSmartPlug
 
+void serverTask(void *parameter)
+{
+  serverSetup();
+  for (;;)
+  {
+    serverLoop();
+    delay(1);
+  }
+}
+
 void setup(void)
 {
   Serial.begin(BAUD);
@@ -20,7 +30,15 @@ void setup(void)
   setupPreferences();
   checkDeviceIdentityOnSetup();
   wifiSetup();
-  serverSetup();
+  xTaskCreatePinnedToCore(
+      serverTask,   /* Function to implement the task */
+      "serverTask", /* Name of the task */
+      10000,        /* Stack size in words */
+      NULL,         /* Task input parameter */
+      0,            /* Priority of the task */
+      NULL,         /* Task handle. */
+      0             /* Core where the task should run */
+  );
   pwmLedSetup();
   temperatureProbeSetup();
   peripheralControlsSetup();
@@ -30,7 +48,6 @@ void setup(void)
 void loop()
 {
   wifiCheckInLoop();
-  serverLoop();
   updateTimeLoop();
   temperatureMoistureLoop();
   temperatureProbeLoop();

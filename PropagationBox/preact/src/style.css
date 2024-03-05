@@ -1,0 +1,53 @@
+html,
+body {
+  font: 14px/1.21 'Helvetica Neue', arial, sans-serif;
+  font-weight: 400;
+  /* dark background */
+  background-color: #282c34;
+  color: blanchedalmond;
+  padding-bottom: 50px;
+  margin: 0;
+}
+
+.app-root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+h1 {
+  text-align: center;
+}
+
+.GlobalInfo {
+  font-size: 1.2em;
+}
+
+.EnvironmentalControls.loading {
+  pointer-events: none;
+}
+
+.WifiForm {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.Section {
+  /* divider */
+}
+
+hr {
+  width: 100%;
+}
+
+label {
+  margin-right: 10px;
+}
+
+.hidden-input {
+  display: none;
+}

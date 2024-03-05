@@ -7,85 +7,10 @@
 #include "time.h"
 #include "preferences_helpers.h"
 #include "time_helpers.h"
+#include "json.h"
+#include "../preact/build/static_files.h"
 
 WebServer server(80);
-
-String formatTime(int minutes)
-{
-    int hour = minutes / 60;
-    int minute = minutes % 60;
-    String hourString = hour < 10 ? "0" + String(hour) : String(hour);
-    String minuteString = minute < 10 ? "0" + String(minute) : String(minute);
-    return hourString + ":" + minuteString;
-}
-
-void handleRootGet()
-{
-    // float tFah = readTFahFromADC(A0);
-
-    // String body = "{";
-    // body += "a0: " + String(readADC(A0), 5);
-    // body += ", a3: " + String(readADC(A3), 5);
-    // body += ", a6: " + String(readADC(A6), 5);
-    // body += ", a7: " + String(readADC(A7), 5);
-    // body += ", a4: " + String(readADC(A4), 5);
-    // body += ", a5: " + String(readADC(A5), 5);
-    // body += ", tf: " + String(tFah);
-    // // body += ", t: " + String(dht.toFahrenheit(tempAndHumidity.temperature), 0);d
-    // // body += ", h: " + String(tempAndHumidity.humidity, 0);
-    // body += " }";
-    // Serial.println(body);
-    // server.send(200, "application/json", body);
-
-    // clang-format off
-    String content = createPage(APP_NAME,
-            createDiv("Chip Id: #" + String(CHIP_ID, HEX))
-            + createDiv("Current temperature: " + String(CURRENT_TEMPERATURE, 2) + "C")
-            + createBreak()
-            + createDiv("Current humidity: " + String(CURRENT_HUMIDITY, 2) + "%")
-            + createBreak()
-            + createDiv("Current probe temperature: " + String(CURRENT_PROBE_TEMPERATURE, 2) + "C")
-            + createBreak()
-            + createDiv("Current time: " + getLocalTimeString())
-            + createBreak()
-            + createDivider()
-            + createDiv("Heat mat: " + String(IS_HEAT_MAT_ON ? "ON" : "OFF"))
-            + createBreak()
-            + createDiv("Fan: " + String(IS_FAN_ON ? "ON" : "OFF"))
-            + createBreak()
-            + createDiv("LED level: " + String(LED_LEVEL * 100, 2) + "%")
-            + createBreak()
-            + createDivider()
-            + createFormWithButton(
-                createInputAndLabel("desired_temp", "Desired temperature (c)", "number", String(DESIRED_TEMPERATURE))
-                + createBreak()
-                + createInputAndLabel("temp_range", "Temperature range (c)", "number", String(TEMPERATURE_RANGE))
-                + createBreak()
-                + createInputAndLabel("desired_humidity", "Desired humidity (rh%)", "number", String(DESIRED_HUMIDITY))
-                + createBreak()
-                + createInputAndLabel("humidity_range", "Humidity range (rh%)", "number", String(HUMIDITY_RANGE))
-                + createBreak()
-                + createCheckboxInputAndLabel("natural_light", "Natural light cycle", USE_NATURAL_LIGHTING_CYCLE)
-                + createBreak()
-                + createInputAndLabel("on_time", "Turn on lights", "time", formatTime(TURN_LIGHTS_ON_AT_MINUTE))
-                + createBreak()
-                + createInputAndLabel("off_time", "Turn off lights", "time", formatTime(TURN_LIGHTS_OFF_AT_MINUTE))
-                + createBreak(),
-                "/"
-            )
-            + createDivider()
-            + createFormWithButton(
-                createInputAndLabel("ssid", "Wifi Name", "text", SSID)
-                + createBreak()
-                + createInputAndLabel("password", "Wifi Password", "password", PASSWORD)
-                + createBreak(),
-                "/wifi-settings"
-            )
-    );
-    // clang-format on
-    delay(100);
-    server.send(200, "text/html", content);
-}
 
 /**
  * Parse time in format HH:MM to minutes
@@ -97,10 +22,54 @@ int parseTimeAsMinutes(String hourMinute)
     return hour * 60 + minute;
 }
 
-void handleRootPost()
+void getSensorInfo()
 {
-    // if (!server.hasArg("Desired temperature") || !server.hasArg("Desired humidity") || !server.hasArg("Natural light cycle") || !server.hasArg("Turn on lights") || !server.hasArg("Turn off lights"))
-    if (!server.hasArg("desired_temp") || !server.hasArg("temp_range") || !server.hasArg("desired_humidity") || !server.hasArg("humidity_range") || !server.hasArg("on_time") || !server.hasArg("off_time"))
+
+    // clang-format off
+    server.send(
+        200,
+        "application/json",
+        buildJson({
+        {"air_temperature", String(CURRENT_TEMPERATURE, 2)},
+        {"humidity", String(CURRENT_HUMIDITY, 2)},
+        {"probe_temperature", String(CURRENT_PROBE_TEMPERATURE, 2)},
+        })
+    );
+}
+
+void getPeripherals()
+{
+    server.send(
+        200,
+        "application/json",
+        buildJson({
+            {"heat_mat", String(IS_HEAT_MAT_ON ? "ON" : "OFF")},
+            {"fan", String(IS_FAN_ON ? "ON" : "OFF")},
+            {"led_level", String(LED_LEVEL * 100, 2)}
+        })
+    );
+}
+
+void getEnvironmentalControlValues()
+{
+    server.send(
+        200,
+        "application/json",
+        buildJson({
+            {"desired_temp", String(DESIRED_TEMPERATURE)},
+            {"temp_range", String(TEMPERATURE_RANGE)},
+            {"desired_humidity", String(DESIRED_HUMIDITY)},
+            {"humidity_range", String(HUMIDITY_RANGE)},
+            {"natural_light", String(USE_NATURAL_LIGHTING_CYCLE)},
+            {"on_time", String(TURN_LIGHTS_ON_AT_MINUTE)},
+            {"off_time", String(TURN_LIGHTS_OFF_AT_MINUTE)}
+        })
+    );
+}
+
+void setEnvironmentalControlValues()
+{
+    if (!server.hasArg("desired_temp") || !server.hasArg("temp_range") || !server.hasArg("desired_humidity") || !server.hasArg("humidity_range") || !server.hasArg("natural_light") || !server.hasArg("on_time") || !server.hasArg("off_time"))
     {
         server.send(404, "text/plain", "Desired temperature, Temperature Range, Desired humidity, Humidity Range, Natural light cycle, Turn on lights, or Turn off lights not found");
         return;
@@ -109,9 +78,17 @@ void handleRootPost()
     float temperatureRange = server.arg("temp_range").toFloat();
     float desiredHumidity = server.arg("desired_humidity").toFloat();
     float humidityRange = server.arg("humidity_range").toFloat();
-    bool useNaturalLightingCycle = server.hasArg("natural_light");
-    int turnOnLightsAtMinute = parseTimeAsMinutes(server.arg("on_time"));
-    int turnOffLightsAtMinute = parseTimeAsMinutes(server.arg("off_time"));
+    bool useNaturalLightingCycle = server.arg("natural_light") == "1" ? true : false;
+    int turnOnLightsAtMinute = server.arg("on_time").toInt();
+    int turnOffLightsAtMinute = server.arg("off_time").toInt();
+
+    DESIRED_TEMPERATURE = desiredTemperature;
+    TEMPERATURE_RANGE = temperatureRange;
+    DESIRED_HUMIDITY = desiredHumidity;
+    HUMIDITY_RANGE = humidityRange;
+    USE_NATURAL_LIGHTING_CYCLE = useNaturalLightingCycle;
+    TURN_LIGHTS_ON_AT_MINUTE = turnOnLightsAtMinute;
+    TURN_LIGHTS_OFF_AT_MINUTE = turnOffLightsAtMinute;
 
     writeEnvironmentalControlValues(
         desiredTemperature,
@@ -122,10 +99,7 @@ void handleRootPost()
         turnOnLightsAtMinute,
         turnOffLightsAtMinute);
 
-    server.send(200, "text/plain", "Desired temperature and Desired humidity updated. Restarting...");
-
-    delay(1000);
-    ESP.restart();
+    getEnvironmentalControlValues();
 }
 
 void handleWifiSettings()
@@ -144,49 +118,6 @@ void handleWifiSettings()
 
     delay(1000);
     ESP.restart();
-}
-
-void handleADC()
-{
-    server.send(200, "text/plain", String(readADC(A0), 5));
-}
-
-void handleDAC()
-{
-    if (!server.hasArg("v"))
-    {
-        server.send(404, "text/plain", "v not found");
-        return;
-    }
-    int v = server.arg("v").toInt();
-    server.send(200, "text/plain", String(setDAC(v)));
-}
-
-void flipIOBit()
-{
-    if (!server.hasArg("pin"))
-    {
-        server.send(404, "text/plain", "pin not found");
-        return;
-    }
-    String pin = server.arg("pin");
-    Serial.println("flipping bit: " + pin);
-    digitalWrite(pin.toInt(), !digitalRead(pin.toInt()));
-    server.send(200, "text/plain", "flipped");
-}
-
-void checkIOBit()
-{
-    if (!server.hasArg("pin"))
-    {
-        server.send(404, "text/plain", "pin not found");
-        return;
-    }
-    String pin = server.arg("pin");
-    Serial.println("checking bit: " + pin);
-    uint8_t val = digitalRead(pin.toInt());
-    Serial.println("value: " + String(val));
-    server.send(200, "text/plain", "value: " + String(val));
 }
 
 void handleNotFound()
@@ -212,21 +143,32 @@ void serverLoop()
 }
 
 /**
- * Setup the web server endpoints
- * Includes OTA update which can be run by curling like so:
- * curl -F "image=@Moisture.ino.node32s.bin" 192.168.29.215/update
- */
-void serverSetup()
+ * Serve the preact page
+*/
+void setupPreactPage()
 {
-    server.on("/", HTTP_GET, handleRootGet);
-    server.on("/", HTTP_POST, handleRootPost);
-    server.on("/wifi-settings", HTTP_POST, handleWifiSettings);
-    server.on("/flip", flipIOBit);
-    server.on("/check", checkIOBit);
-    server.on("/setdac", handleDAC);
-    server.on("/readadc", handleADC);
-    server.onNotFound(handleNotFound);
 
+    // Optional, defines the default entrypoint
+    server.on("/", HTTP_GET, []
+              {
+            server.sendHeader("Content-Encoding", "gzip");
+            server.send_P(200, "text/html", (const char *)static_files::f_index_html_contents, static_files::f_index_html_size); });
+
+    // Create a route handler for each of the build artifacts
+    for (int i = 0; i < static_files::num_of_files; i++)
+    {
+        server.on(static_files::files[i].path, [i]
+                  {
+            server.sendHeader("Content-Encoding", "gzip");
+            server.send_P(200, static_files::files[i].type, (const char *)static_files::files[i].contents, static_files::files[i].size); });
+    }
+}
+
+/**
+ * Setup the OTA update endpoint
+*/
+void setupOTAUpdate()
+{
     // OTA update
     server.on(
         "/update", HTTP_POST, []()
@@ -265,6 +207,48 @@ void serverSetup()
                 Serial.setDebugOutput(false);
             }
         });
+}
+
+void getGlobalInfo()
+{
+    // clang-format off
+    server.send(
+        200,
+        "application/json",
+        buildJson({
+            {"ChipId", String(CHIP_ID, HEX)},
+            {"ResetCounter", String(RESET_COUNTER)},
+            {"CurrentTime", getLocalTimeString()},
+            {"Core", String(xPortGetCoreID())}
+        })
+    );
+}
+
+void onReset()
+{
+    // hardware reset
+    server.send(200, "application/json", buildJson({{"ResetCounter", String(RESET_COUNTER)}}));
+    delay(200);
+    ESP.restart();
+}
+
+/**
+ * Setup the web server endpoints
+ * Includes OTA update which can be run by curling like so:
+ * curl -F "image=@Moisture.ino.node32s.bin" 192.168.29.215/update
+ */
+void serverSetup()
+{
+    server.on("/global-info", HTTP_GET, getGlobalInfo);
+    server.on("/wifi-settings", HTTP_POST, handleWifiSettings);
+    server.on("/sensor-info", HTTP_GET, getSensorInfo);
+    server.on("/peripherals", HTTP_GET, getPeripherals);
+    server.on("/environmental-controls", HTTP_GET, getEnvironmentalControlValues);
+    server.on("/environmental-controls", HTTP_POST, setEnvironmentalControlValues);
+    server.on("/reset", HTTP_POST, onReset);
+    server.onNotFound(handleNotFound);
+    setupPreactPage();
+    setupOTAUpdate();
 
     server.begin();
 }

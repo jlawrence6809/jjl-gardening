@@ -60,6 +60,9 @@ void setupPreferences()
     TURN_LIGHTS_ON_AT_MINUTE = readPreference("tloonam", "0").toInt();
     TURN_LIGHTS_OFF_AT_MINUTE = readPreference("tloffam", "0").toInt();
 
+    RESET_COUNTER = readPreference("resets", "0").toInt();
+    writePreference("resets", (char *)String(RESET_COUNTER + 1).c_str());
+
     // if desired temperature/humidity is not valid (bad float/0), set it to default values of 23c and 60%
     if (DESIRED_TEMPERATURE <= 0 || DESIRED_HUMIDITY <= 0)
     {

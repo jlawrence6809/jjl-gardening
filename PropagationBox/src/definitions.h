@@ -14,6 +14,10 @@ constexpr int HEAT_MAT_PIN = 17;
 // VARIABLES
 extern const char *APP_NAME;
 
+// VARIABLES
+extern const char *WIFI_NAME;
+extern const char *AP_PASSWORD;
+
 extern uint64_t CHIP_ID;
 extern uint64_t DEVICE_1;
 extern uint64_t DEVICE_2;
@@ -39,3 +43,5 @@ extern float HUMIDITY_RANGE;
 extern bool USE_NATURAL_LIGHTING_CYCLE;
 extern int TURN_LIGHTS_ON_AT_MINUTE;
 extern int TURN_LIGHTS_OFF_AT_MINUTE;
+
+extern int RESET_COUNTER;
