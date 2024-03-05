@@ -158,7 +158,8 @@ void controlPeripheralsLoop()
         return;
     }
 
-    if (CURRENT_TEMPERATURE == -1 || CURRENT_HUMIDITY == -1 || CURRENT_PROBE_TEMPERATURE == -1 || DESIRED_TEMPERATURE == -1 || DESIRED_HUMIDITY == -1)
+    if (
+        CURRENT_TEMPERATURE == NULL_TEMPERATURE || CURRENT_HUMIDITY == NULL_TEMPERATURE || CURRENT_PROBE_TEMPERATURE == NULL_TEMPERATURE || DESIRED_TEMPERATURE == NULL_TEMPERATURE || DESIRED_HUMIDITY == NULL_TEMPERATURE)
     {
         Serial.println("Peripheral controls not initialized, skipping...");
         turnOffAllPeripherals();

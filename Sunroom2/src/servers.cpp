@@ -13,13 +13,15 @@
 WebServer server(80);
 
 /**
- * Parse time in format HH:MM to minutes
+ * Convert celsius to fahrenheit
  */
-int parseTimeAsMinutes(String hourMinute)
+float cToF(float c)
 {
-    int hour = hourMinute.substring(0, 2).toInt();
-    int minute = hourMinute.substring(3, 5).toInt();
-    return hour * 60 + minute;
+    if (c == NULL_TEMPERATURE)
+    {
+        return NULL_TEMPERATURE;
+    }
+    return c * 9 / 5 + 32;
 }
 
 // void handleRootPost()
@@ -207,8 +209,9 @@ void getGlobalInfo()
         buildJson({
             {"ChipId", String(CHIP_ID, HEX)},
             {"ResetCounter", String(RESET_COUNTER)},
-            {"InternalTemperature", String(temperatureRead(), 2)},
-            {"CurrentTime", getLocalTimeString()}
+            {"InternalTemperature", String(cToF(INTERNAL_CHIP_TEMPERATURE), 2)},
+            {"CurrentTime", getLocalTimeString()},
+            {"Core", String(xPortGetCoreID())}
         })
     );
 }
@@ -221,14 +224,22 @@ void getSensorInfo()
         200,
         "application/json",
         buildJson({
-            {"Temperature", String(CURRENT_TEMPERATURE, 2)},
+            {"Temperature", String(cToF(CURRENT_TEMPERATURE), 2)},
             {"Humidity", String(CURRENT_HUMIDITY, 2)},
-            {"ProbeTemperature", String(CURRENT_PROBE_TEMPERATURE, 2)},
+            {"ProbeTemperature", String(cToF(CURRENT_PROBE_TEMPERATURE), 2)},
             {"Light", String(light)},
             {"Switch", String(switchV)}
         })
     );
 
+}
+
+void onReset()
+{
+    // hardware reset
+    server.send(200, "application/json", buildJson({{"ResetCounter", String(RESET_COUNTER)}}));
+    delay(200);
+    ESP.restart();
 }
 
 /**
@@ -243,6 +254,7 @@ void serverSetup()
     server.on("/relays", HTTP_GET, getRelays);
     server.on("/relays", HTTP_POST, setRelays);
     server.on("/sensor-info", HTTP_GET, getSensorInfo);
+    server.on("/reset", HTTP_POST, onReset);
     server.onNotFound(handleNotFound);
     setupPreactPage();
     setupOTAUpdate();

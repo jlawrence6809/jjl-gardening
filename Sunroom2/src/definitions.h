@@ -42,9 +42,11 @@ extern uint64_t DEVICE_3;
 extern String SSID;
 extern String PASSWORD;
 
+constexpr float NULL_TEMPERATURE = -100;
+
 extern float CURRENT_TEMPERATURE;
 extern float CURRENT_HUMIDITY;
-
+extern float INTERNAL_CHIP_TEMPERATURE;
 extern float CURRENT_PROBE_TEMPERATURE;
 
 extern bool IS_HEAT_MAT_ON;

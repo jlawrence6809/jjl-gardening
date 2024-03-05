@@ -24,6 +24,8 @@ export default function App() {
       <SensorInfo />
       <hr />
       <WifiForm />
+      <hr />
+      <Restart />
     </div>
   );
 }
@@ -44,7 +46,7 @@ const GlobalInfo = () => {
     <Section className="GlobalInfo" title="Global Info">
       <p>Chip Id: #{globalInfo.ChipId}</p>
       <p>Resets: {globalInfo.ResetCounter}</p>
-      <p>Internal temperature: {globalInfo.InternalTemperature}</p>
+      <p>Internal temperature: {globalInfo.InternalTemperature}F</p>
       <p>Current time: {globalInfo.CurrentTime}</p>
     </Section>
   );
@@ -64,8 +66,8 @@ const SensorInfo = () => {
 
   return (
     <Section className="SensorInfo" title="Sensor Info">
-      <p>Temperature: {sensorInfo.Temperature}</p>
-      <p>Humidity: {sensorInfo.Humidity}</p>
+      <p>Temperature: {sensorInfo.Temperature}F</p>
+      <p>Humidity: {sensorInfo.Humidity}%</p>
       <p>Light: {sensorInfo.Light}</p>
       <p>Switch: {sensorInfo.Switch}</p>
     </Section>
@@ -158,6 +160,36 @@ const WifiForm = () => {
         <button type="submit">Submit</button>
       </form>
     </Section>
+  );
+};
+
+const RESTART_SECONDS = 5;
+
+const Restart = () => {
+  const [restartSuccess, setRestartSuccess] = useState(false);
+
+  return (
+    <div>
+      <button
+        onClick={async () => {
+          try {
+            await fetch('/restart', { method: 'POST' });
+            setRestartSuccess(true);
+            setTimeout(() => {
+              setRestartSuccess(false);
+            }, RESTART_SECONDS * 1000);
+          } catch (error) {
+            console.error(error);
+            alert('Error restarting');
+          }
+        }}
+      >
+        Reset
+      </button>
+      {restartSuccess && (
+        <p>Success, restarting in {RESTART_SECONDS} seconds...</p>
+      )}
+    </div>
   );
 };
 

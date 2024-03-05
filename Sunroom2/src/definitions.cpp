@@ -3,9 +3,10 @@
 // #include "credentials.h"
 
 // VARIABLES
-const char *WIFI_NAME = "sunroom3";
+const char *WIFI_NAME = "sunroom2";
 
-const char *AP_PASSWORD = "esp32!";
+// Note: must be longer than 8 characters
+const char *AP_PASSWORD = "esp32iscool!";
 
 uint64_t CHIP_ID = 0;
 uint64_t DEVICE_1 = 0xa85627a4ae30;
@@ -15,9 +16,10 @@ uint64_t DEVICE_3 = 0xe0286c12cfa4;
 String SSID = "";
 String PASSWORD = "";
 
-float CURRENT_TEMPERATURE = -1;
+float CURRENT_TEMPERATURE = -100;
 float CURRENT_HUMIDITY = -1;
-float CURRENT_PROBE_TEMPERATURE = -1;
+float INTERNAL_CHIP_TEMPERATURE = -100;
+float CURRENT_PROBE_TEMPERATURE = -100;
 
 bool IS_HEAT_MAT_ON = false;
 bool IS_FAN_ON = false;

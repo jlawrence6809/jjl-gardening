@@ -10,25 +10,6 @@ static Timer timer(30000);
 
 bool initializeSensor()
 {
-    // try to initialize!
-    // int retries = 5;
-    // Serial.println("Connecting to ATH21...");
-
-    // while (!aht.begin() && retries > 0)
-    // {
-    //     Serial.println("Retrying...");
-    //     retries--;
-    //     delay(500);
-    // }
-    // if (retries == 0)
-    // {
-    //     Serial.println("ATH21 not found!");
-    //     return false;
-    // }
-
-    // Serial.println("ATH21 found!");
-    // return true;
-
     Serial.println("Connecting to ATH21...");
 
     if (!aht.begin())
@@ -46,13 +27,17 @@ void temperatureMoistureLoop()
         return;
     }
 
+    Serial.println("Main loop core: " + String(xPortGetCoreID()));
+
+    INTERNAL_CHIP_TEMPERATURE = temperatureRead();
+
     Serial.println("Checking temperature and humidity...");
 
     // check aht status
     if (!initializeSensor())
     {
-        CURRENT_TEMPERATURE = -1;
-        CURRENT_HUMIDITY = -1;
+        CURRENT_TEMPERATURE = NULL_TEMPERATURE;
+        CURRENT_HUMIDITY = NULL_TEMPERATURE;
         return;
     }
     sensors_event_t humidity, temp;
@@ -63,8 +48,8 @@ void temperatureMoistureLoop()
         Serial.println("Sensor read failed. Reconnecting...");
         if (!initializeSensor())
         {
-            CURRENT_TEMPERATURE = -1;
-            CURRENT_HUMIDITY = -1;
+            CURRENT_TEMPERATURE = NULL_TEMPERATURE;
+            CURRENT_HUMIDITY = NULL_TEMPERATURE;
             return;
         }
         aht.getEvent(&humidity, &temp);
