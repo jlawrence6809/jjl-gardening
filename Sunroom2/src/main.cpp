@@ -17,7 +17,7 @@ void serverTask(void *parameter)
   for (;;)
   {
     serverLoop();
-    delay(10);
+    delay(1);
   }
 }
 
@@ -51,3 +51,5 @@ void loop()
   controlPeripheralsLoop();
   delay(10);
 }
+
+// 132kb

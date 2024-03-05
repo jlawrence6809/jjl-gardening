@@ -24,37 +24,6 @@ float cToF(float c)
     return c * 9 / 5 + 32;
 }
 
-// void handleRootPost()
-// {
-//     // if (!server.hasArg("Desired temperature") || !server.hasArg("Desired humidity") || !server.hasArg("Natural light cycle") || !server.hasArg("Turn on lights") || !server.hasArg("Turn off lights"))
-//     if (!server.hasArg("desired_temp") || !server.hasArg("temp_range") || !server.hasArg("desired_humidity") || !server.hasArg("humidity_range") || !server.hasArg("on_time") || !server.hasArg("off_time"))
-//     {
-//         server.send(404, "text/plain", "Desired temperature, Temperature Range, Desired humidity, Humidity Range, Natural light cycle, Turn on lights, or Turn off lights not found");
-//         return;
-//     }
-//     float desiredTemperature = server.arg("desired_temp").toFloat();
-//     float temperatureRange = server.arg("temp_range").toFloat();
-//     float desiredHumidity = server.arg("desired_humidity").toFloat();
-//     float humidityRange = server.arg("humidity_range").toFloat();
-//     bool useNaturalLightingCycle = server.hasArg("natural_light");
-//     int turnOnLightsAtMinute = parseTimeAsMinutes(server.arg("on_time"));
-//     int turnOffLightsAtMinute = parseTimeAsMinutes(server.arg("off_time"));
-
-//     writeEnvironmentalControlValues(
-//         desiredTemperature,
-//         temperatureRange,
-//         desiredHumidity,
-//         humidityRange,
-//         useNaturalLightingCycle,
-//         turnOnLightsAtMinute,
-//         turnOffLightsAtMinute);
-
-//     server.send(200, "text/plain", "Desired temperature and Desired humidity updated. Restarting...");
-
-//     delay(1000);
-//     ESP.restart();
-// }
-
 String getRelayValues()
 {
     return buildJson({
