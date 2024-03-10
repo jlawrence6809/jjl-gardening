@@ -56,18 +56,73 @@ h1 {
   border-radius: 15px;
   font-size: 1.5em;
   cursor: pointer;
+
+  position: relative;
 }
 
-.ToggleSwitch.loading {
+.ToggleSwitch.state_loading {
   background-color: #ccc;
 }
 
-.ToggleSwitch.on {
+.ToggleSwitch.state_auto {
+  /* blue */
+  background-color: #007bff;
+}
+
+.ToggleSwitch.state_1 {
   background-color: green;
 }
 
-.ToggleSwitch.off {
+.ToggleSwitch.state_0 {
   background-color: red;
+}
+
+.AutomateButton {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 20px;
+  height: 20px;
+  border-radius: 20%;
+  text-align: center;
+  font-size: medium;
+}
+
+.AutomateButton:hover {
+  background-color: #282c34;
+}
+
+.AutomateDialog {
+  width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background-color: #282c34;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+/* Overlay dialog, cover entire page to prevent clicking */
+.FullScreenDialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  z-index: 100;
+}
+
+.FullScreenDialog.inner {
+  background-color: white;
+  padding: 1em;
+  max-width: 90%;
+  max-height: 90%;
+  overflow: auto;
 }
 
 hr {
@@ -76,8 +131,4 @@ hr {
 
 label {
   margin-right: 10px;
-}
-
-.hidden-input {
-  display: none;
 }
