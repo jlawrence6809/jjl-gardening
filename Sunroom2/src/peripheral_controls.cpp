@@ -5,36 +5,38 @@
 #include "time_helpers.h"
 
 static Timer timer(30000);
-int SUNROOM_LIGHTS_RELAY = RELAY_7_PIN;
+int SUNROOM_LIGHTS_RELAY = 6;
 
-void turnOffRelay(int pin)
+void turnOffRelay(int relay)
 {
+    int pin = RELAY_PINS[relay];
     digitalWrite(pin, HIGH);
-    RELAY_VALUES[pin] = false;
+    RELAY_VALUES[relay] = false;
 }
 
-void turnOnRelay(int pin)
+void turnOnRelay(int relay)
 {
+    int pin = RELAY_PINS[relay];
     digitalWrite(pin, LOW);
-    RELAY_VALUES[pin] = true;
+    RELAY_VALUES[relay] = true;
 }
 
-void setupRelay(int pin)
+void setupRelays()
 {
-    pinMode(pin, OUTPUT);
-    turnOffRelay(pin);
+    for (int i = 0; i < RELAY_COUNT; i++)
+    {
+        int pin = RELAY_PINS[i];
+        pinMode(pin, OUTPUT);
+        turnOffRelay(pin);
+    }
 }
 
 void relayRefresh()
 {
-    digitalWrite(RELAY_1_PIN, !RELAY_VALUES[RELAY_1_PIN]);
-    digitalWrite(RELAY_2_PIN, !RELAY_VALUES[RELAY_2_PIN]);
-    digitalWrite(RELAY_3_PIN, !RELAY_VALUES[RELAY_3_PIN]);
-    digitalWrite(RELAY_4_PIN, !RELAY_VALUES[RELAY_4_PIN]);
-    digitalWrite(RELAY_5_PIN, !RELAY_VALUES[RELAY_5_PIN]);
-    digitalWrite(RELAY_6_PIN, !RELAY_VALUES[RELAY_6_PIN]);
-    digitalWrite(RELAY_7_PIN, !RELAY_VALUES[RELAY_7_PIN]);
-    digitalWrite(RELAY_8_PIN, !RELAY_VALUES[RELAY_8_PIN]);
+    for (int i = 0; i < RELAY_COUNT; i++)
+    {
+        digitalWrite(RELAY_PINS[i], !RELAY_VALUES[i]);
+    }
 }
 
 void photoSensorSetup()
@@ -95,14 +97,7 @@ void turnOffAllPeripherals()
 
 void peripheralControlsSetup()
 {
-    setupRelay(RELAY_1_PIN);
-    setupRelay(RELAY_2_PIN);
-    setupRelay(RELAY_3_PIN);
-    setupRelay(RELAY_4_PIN);
-    setupRelay(RELAY_5_PIN);
-    setupRelay(RELAY_6_PIN);
-    setupRelay(RELAY_7_PIN);
-    setupRelay(RELAY_8_PIN);
+    setupRelays();
     photoSensorSetup();
     lightSwitchSetup();
 }

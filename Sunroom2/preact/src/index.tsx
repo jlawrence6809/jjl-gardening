@@ -2,24 +2,19 @@ import './style';
 import { useEffect, useState } from 'preact/hooks';
 import { createPortal } from 'preact/compat';
 import { VNode } from 'preact';
-import {
-  Rule,
-  CurrentSensorActuatorValues,
-  InputConditionConfigs,
-} from './types';
-import { parseInputString, Err, TokenListTreeNode } from './RuleParser';
+import { parseInputString, Err, ParsedRule } from './RuleParser';
 
 const PORTAL_ROOT_ID = 'portal-root';
 
 const RELAY_LABELS = {
-  relay_1: 'Outlet A',
-  relay_2: 'Outlet B',
-  relay_3: 'Outlet C',
-  relay_4: 'Outlet D',
-  relay_5: 'NC',
-  relay_6: 'Outdoor Lights',
-  relay_7: 'Sunroom Lights',
-  relay_8: 'Fan',
+  relay_0: 'Outlet A',
+  relay_1: 'Outlet B',
+  relay_2: 'Outlet C',
+  relay_3: 'Outlet D',
+  relay_4: 'NC',
+  relay_5: 'Outdoor Lights',
+  relay_6: 'Sunroom Lights',
+  relay_7: 'Fan',
 };
 
 export default function App() {
@@ -102,16 +97,16 @@ const SensorInfo = () => {
   );
 };
 
-type RelayStateValue = '0' | '1' | 'auto' | 'LOADING';
+type RelayStateValue = '0' | '1' | 'auto' | 'loading';
 type Relay =
+  | 'relay_0'
   | 'relay_1'
   | 'relay_2'
   | 'relay_3'
   | 'relay_4'
   | 'relay_5'
   | 'relay_6'
-  | 'relay_7'
-  | 'relay_8';
+  | 'relay_7';
 type RelayState = Record<Relay, RelayStateValue>;
 
 const NEXT_RELAY_STATE = {
@@ -122,14 +117,15 @@ const NEXT_RELAY_STATE = {
 
 const RelayControls = () => {
   const [relayState, setRelayState] = useState<RelayState>({
-    relay_1: 'LOADING',
-    relay_2: 'LOADING',
-    relay_3: 'LOADING',
-    relay_4: 'LOADING',
-    relay_5: 'LOADING',
-    relay_6: 'LOADING',
-    relay_7: 'LOADING',
-    relay_8: 'LOADING',
+    relay_0: 'loading',
+    relay_1: 'loading',
+    relay_2: 'loading',
+    relay_3: 'loading',
+    relay_4: 'loading',
+    relay_5: 'loading',
+    relay_6: 'loading',
+    relay_7: 'loading',
+    // relay_0: '0',
     // relay_1: '0',
     // relay_2: 'auto',
     // relay_3: '0',
@@ -137,7 +133,6 @@ const RelayControls = () => {
     // relay_5: '0',
     // relay_6: '1',
     // relay_7: '0',
-    // relay_8: '0',
   });
 
   const [automateDialogRelay, setAutomateDialogRelay] = useState<Relay | null>(
@@ -145,7 +140,7 @@ const RelayControls = () => {
   );
 
   const isLoading = Object.values(relayState).some(
-    (value) => value === 'LOADING',
+    (value) => value === 'loading',
   );
 
   useEffect(() => {
@@ -161,7 +156,7 @@ const RelayControls = () => {
     const previousState = relayState[relay];
     setRelayState({
       ...relayState,
-      [relay]: 'LOADING',
+      [relay]: 'loading',
     });
 
     try {
@@ -188,7 +183,7 @@ const RelayControls = () => {
       title="Relay Controls"
     >
       {new Array(8).fill(0).map((_, i) => {
-        const relay = `relay_${i + 1}` as Relay;
+        const relay = `relay_${i}` as Relay;
         const value = relayState[relay];
         const label = RELAY_LABELS[relay];
         const name = relay;
@@ -236,11 +231,13 @@ type AutomateDialogProps = {
 const AutomateDialog = ({ relay, onClose }: AutomateDialogProps) => {
   // const [rule, setRule] = useState<Rule | null>(null);
   const [rule, setRule] = useState<string>('');
-  const [validationResult, setValidationResult] = useState<
-    TokenListTreeNode | Err
-  >(null);
+  const [validationResult, setValidationResult] = useState<ParsedRule | Err>(
+    null,
+  );
   const submitDisabled =
-    !validationResult || validationResult?.type === 'ERROR';
+    !validationResult || (validationResult as Err)?.type === 'ERROR';
+
+  const relayIdx = relay === null ? null : parseInt(relay?.split('_')?.[1]);
 
   // const [currentSensorActuatorValues, setCurrentSensorActuatorValues] =
   //   useState<CurrentSensorActuatorValues | null>(null);
@@ -250,13 +247,13 @@ const AutomateDialog = ({ relay, onClose }: AutomateDialogProps) => {
 
   useEffect(() => {
     const load = async () => {
-      if (relay === null) return;
-      const data = await fetch(`/rules/${relay}`);
+      if (relayIdx === null) return;
+      const data = await fetch(`/rule?i=${relayIdx}`);
       const json = await data.json();
-      setRule(json.value);
+      setRule(json.v);
     };
     load();
-  }, [relay]);
+  }, [relayIdx]);
 
   // useEffect(() => {
   //   const load = async () => {
@@ -285,12 +282,13 @@ const AutomateDialog = ({ relay, onClose }: AutomateDialogProps) => {
       return;
     }
     try {
-      await fetch(`/rules/${relay}`, {
+      const formData = new FormData();
+      formData.append('v', JSON.stringify(JSON.parse(rule)));
+      formData.append('i', relayIdx.toString());
+
+      await fetch(`/rule`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ v: validationResult }),
+        body: formData,
       });
       onClose();
     } catch (error) {

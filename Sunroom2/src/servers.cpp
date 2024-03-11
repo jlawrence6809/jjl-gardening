@@ -13,6 +13,9 @@
 #include <ESPAsyncWebServer.h>
 #include <AsyncTCP.h>
 
+bool POST_PARAM = true;
+bool GET_PARAM = false;
+
 AsyncWebServer server(80);
 
 String JSON_CONTENT_TYPE = "application/json";
@@ -33,16 +36,12 @@ float cToF(float c)
 
 String getRelayValues()
 {
-    return buildJson({
-        {"relay_1", String(RELAY_VALUES[RELAY_1_PIN])},
-        {"relay_2", String(RELAY_VALUES[RELAY_2_PIN])},
-        {"relay_3", String(RELAY_VALUES[RELAY_3_PIN])},
-        {"relay_4", String(RELAY_VALUES[RELAY_4_PIN])},
-        {"relay_5", String(RELAY_VALUES[RELAY_5_PIN])},
-        {"relay_6", String(RELAY_VALUES[RELAY_6_PIN])},
-        {"relay_7", String(RELAY_VALUES[RELAY_7_PIN])},
-        {"relay_8", String(RELAY_VALUES[RELAY_8_PIN])},
-    });
+    std::map<String, String> relayMap;
+    for (int i = 0; i < RELAY_COUNT; i++)
+    {
+        relayMap["relay_" + String(i)] = String(RELAY_VALUES[i]);
+    }
+    return buildJson(relayMap);
 }
 
 void getRelays(AsyncWebServerRequest *request)
@@ -50,41 +49,33 @@ void getRelays(AsyncWebServerRequest *request)
     request->send(200, JSON_CONTENT_TYPE, getRelayValues());
 }
 
-void setRelay(AsyncWebServerRequest *request, String arg, int pin)
-{
-    if (!request->hasParam(arg, true))
-    {
-        return;
-    }
-    bool relay = request->getParam(arg, true)->value().toInt() > 0;
-    digitalWrite(pin, relay);
-    RELAY_VALUES[pin] = relay;
-}
-
 void setRelays(AsyncWebServerRequest *request)
 {
-    setRelay(request, "relay_1", RELAY_1_PIN);
-    setRelay(request, "relay_2", RELAY_2_PIN);
-    setRelay(request, "relay_3", RELAY_3_PIN);
-    setRelay(request, "relay_4", RELAY_4_PIN);
-    setRelay(request, "relay_5", RELAY_5_PIN);
-    setRelay(request, "relay_6", RELAY_6_PIN);
-    setRelay(request, "relay_7", RELAY_7_PIN);
-    setRelay(request, "relay_8", RELAY_8_PIN);
+    for (int i = 0; i < RELAY_COUNT; i++)
+    {
+        String relayParam = "relay_" + String(i);
+        if (request->hasParam(relayParam, POST_PARAM))
+        {
+            bool value = request->getParam(relayParam, POST_PARAM)->value().toInt() > 0;
+            RELAY_VALUES[i] = value;
+            digitalWrite(RELAY_PINS[i], value);
+        }
+    }
+
     writeRelayValues();
     getRelays(request);
 }
 
 void handleWifiSettings(AsyncWebServerRequest *request)
 {
-    if (!request->hasParam("ssid", true) || !request->hasParam("password", true))
+    if (!request->hasParam("ssid", POST_PARAM) || !request->hasParam("password", POST_PARAM))
     {
         request->send(404, PLAIN_TEXT_CONTENT_TYPE, "Wifi Name or Wifi Password not found");
         return;
     }
     // Parameters are accessed differently in ESPAsyncWebServer
-    SSID = request->getParam("ssid", true)->value();
-    PASSWORD = request->getParam("password", true)->value();
+    SSID = request->getParam("ssid", POST_PARAM)->value();
+    PASSWORD = request->getParam("password", POST_PARAM)->value();
 
     writeWifiCredentials(SSID, PASSWORD);
 
@@ -199,18 +190,53 @@ void getSensorInfo(AsyncWebServerRequest *request)
     Serial.println("GET /sensor-info done");
 }
 
-// void getRules(AsyncWebServerRequest *request)
-// {
-//     // request->send(200, "application/json", getRulesJson());
-// }
+/**
+ * Get the rules for a relay
+ * call example: /rule?i=0
+ */
+void getRule(AsyncWebServerRequest *request)
+{
+    int relay = -1;
+    if (request->hasParam("i", GET_PARAM))
+    {
+        relay = request->getParam("i", GET_PARAM)->value().toInt();
+    }
+    if (relay < 0 || relay >= RELAY_COUNT)
+    {
+        request->send(404, JSON_CONTENT_TYPE, buildJson({{"Error", String("Relay not found")}}));
+        return;
+    }
+    request->send(200, JSON_CONTENT_TYPE, buildJson({{"v", RELAY_RULES[relay]}}));
+}
 
-// void setRules(AsyncWebServerRequest *request)
-// {
-//     // parse json payload
-//     DynamicJsonDocument doc(512);
-//     deserializeJson(doc, server.arg("plain"));
+/**
+ * Set the rules for a relay
+ *
+ * post example: /rule
+ * formData:
+ * rules: ["NOP"]
+ * i: 0
+ */
+void setRule(AsyncWebServerRequest *request)
+{
+    // check for "i" and "v" parameters
+    if (!request->hasParam("i", POST_PARAM) || !request->hasParam("v", POST_PARAM))
+    {
+        request->send(404, JSON_CONTENT_TYPE, buildJson({{"Error", String("Relay or rules not found")}}));
+        return;
+    }
 
-// }
+    int relay = request->getParam("i", POST_PARAM)->value().toInt();
+    if (relay < 0 || relay >= RELAY_COUNT)
+    {
+        request->send(404, JSON_CONTENT_TYPE, buildJson({{"Error", String("Relay not found")}}));
+        return;
+    }
+    String rules = request->getParam("v", POST_PARAM)->value();
+    RELAY_RULES[relay] = rules;
+    writeRelayRules();
+    request->send(200, JSON_CONTENT_TYPE, buildJson({{"v", RELAY_RULES[relay]}}));
+}
 
 void onReset(AsyncWebServerRequest *request)
 {
@@ -233,8 +259,8 @@ void serverSetup()
     server.on("/relays", HTTP_POST, setRelays);
     server.on("/sensor-info", HTTP_GET, getSensorInfo);
     server.on("/reset", HTTP_POST, onReset);
-    // server.on("/rules", HTTP_GET, getRules);
-    // server.on("/rules", HTTP_POST, setRules);
+    server.on("/rule", HTTP_GET, getRule);
+    server.on("/rule", HTTP_POST, setRule);
     setupPreactPage();
     setupOTAUpdate();
     server.onNotFound(handleNotFound);

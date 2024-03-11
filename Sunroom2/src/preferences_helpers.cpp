@@ -50,60 +50,31 @@ void writeEnvironmentalControlValues(float temperature, float temperatureRange, 
 
 void writeRelayValues()
 {
-    writePreference("relay1", (char *)String(RELAY_VALUES[RELAY_1_PIN] ? 1 : 0).c_str());
-    writePreference("relay2", (char *)String(RELAY_VALUES[RELAY_2_PIN] ? 1 : 0).c_str());
-    writePreference("relay3", (char *)String(RELAY_VALUES[RELAY_3_PIN] ? 1 : 0).c_str());
-    writePreference("relay4", (char *)String(RELAY_VALUES[RELAY_4_PIN] ? 1 : 0).c_str());
-    writePreference("relay5", (char *)String(RELAY_VALUES[RELAY_5_PIN] ? 1 : 0).c_str());
-    writePreference("relay6", (char *)String(RELAY_VALUES[RELAY_6_PIN] ? 1 : 0).c_str());
-    writePreference("relay7", (char *)String(RELAY_VALUES[RELAY_7_PIN] ? 1 : 0).c_str());
-    writePreference("relay8", (char *)String(RELAY_VALUES[RELAY_8_PIN] ? 1 : 0).c_str());
+    for (int i = 0; i < RELAY_COUNT; i++)
+    {
+        writePreference(("relay" + String(i)).c_str(), (char *)String(RELAY_VALUES[i] ? 1 : 0).c_str());
+    }
+}
+
+void writeRelayRules()
+{
+    for (int i = 0; i < RELAY_COUNT; i++)
+    {
+        writePreference(("rlyrl" + String(i)).c_str(), (char *)(RELAY_RULES[i]).c_str());
+    }
 }
 
 void setupRelay()
 {
-    RELAY_VALUES = {
-        {RELAY_1_PIN, false},
-        {RELAY_2_PIN, false},
-        {RELAY_3_PIN, false},
-        {RELAY_4_PIN, false},
-        {RELAY_5_PIN, false},
-        {RELAY_6_PIN, false},
-        {RELAY_7_PIN, false},
-        {RELAY_8_PIN, false}};
-
-    RELAY_VALUES[RELAY_1_PIN] = readPreference("relay1", "0").toInt() == 1;
-    RELAY_VALUES[RELAY_2_PIN] = readPreference("relay2", "0").toInt() == 1;
-    RELAY_VALUES[RELAY_3_PIN] = readPreference("relay3", "0").toInt() == 1;
-    RELAY_VALUES[RELAY_4_PIN] = readPreference("relay4", "0").toInt() == 1;
-    RELAY_VALUES[RELAY_5_PIN] = readPreference("relay5", "0").toInt() == 1;
-    RELAY_VALUES[RELAY_6_PIN] = readPreference("relay6", "0").toInt() == 1;
-    RELAY_VALUES[RELAY_7_PIN] = readPreference("relay7", "0").toInt() == 1;
-    RELAY_VALUES[RELAY_8_PIN] = readPreference("relay8", "0").toInt() == 1;
+    for (int i = 0; i < RELAY_COUNT; i++)
+    {
+        RELAY_VALUES[i] = readPreference(("relay" + String(i)).c_str(), "0").toInt() == 1;
+        /**
+         * Rules are json blobs that define the conditions for a relay to be turned on or off
+         */
+        RELAY_RULES[i] = readPreference(("rlyrl" + String(i)).c_str(), "[\"NOP\"]");
+    }
 }
-
-/**
- * Rules are json blobs that define the conditions for a relay to be turned on or off
-*/
-void setupRelayRules() {
-
-}
-
-// DynamicJsonDocument doc(1024);
-void setRelayRule(DynamicJsonDocument doc) {
-    // doc["relay"] = 1;
-    // doc["type"] = "temperature";
-    // doc["condition"] = ">";
-    // doc["value"] = 23;
-    // doc["action"] = "on";
-    // doc["enabled"] = true;
-    // doc["id"] = 1;
-    // doc["name"] = "Turn on fan when temperature is above 23c";
-    // doc["description"] = "This rule turns on the fan when the temperature is above 23c";
-    // doc["created_at"] = "2021-01-01T00:00:00Z";
-    // doc["updated_at"] = "2021-01-01T00:00:00Z";
-}
-
 void setupPreferences()
 {
     SSID = readPreference("ssid", "");

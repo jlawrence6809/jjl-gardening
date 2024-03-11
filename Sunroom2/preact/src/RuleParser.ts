@@ -1,26 +1,24 @@
 const MAX_SIZE = 256;
 
+export type ParsedRule = [
+  keyof typeof FUNCTION_TYPES,
+  ...(string | number | boolean | ParsedRule)[],
+];
+
 /**
  * Lexes the input string into a nested list structure and validates the function names and number of arguments. (LISP like syntax)
  *
- * eg: '(IF,b,(EQ, x, y),d)' => ['IF', 'b', ['EQ', 'x', 'y'], 'd']
+ * example input: ['IF', 'b', ['EQ', 'x', 'y'], 'd']
  */
-export const parseInputString = (input: string): TokenListTreeNode | Err => {
-  const result = recursivelyParseNestedLists(input, 0);
-  if (result.type === 'ERROR') {
-    return result;
+export const parseInputString = (input: string): ParsedRule | Err => {
+  let rule: ParsedRule;
+  try {
+    rule = JSON.parse(input);
+  } catch (e) {
+    return { type: 'ERROR', message: e.message, index: 0 };
   }
 
-  const { tree: listTree, index } = result;
-  if (index !== input.length) {
-    return {
-      type: 'ERROR',
-      message: `Unexpected token at index ${index}`,
-      index,
-    };
-  }
-
-  const tokenTree = tokenizeArguments(listTree);
+  const tokenTree = tokenizeArguments(rule);
   if (tokenTree.type === 'ERROR') {
     return tokenTree;
   }
@@ -30,16 +28,16 @@ export const parseInputString = (input: string): TokenListTreeNode | Err => {
     return validation;
   }
 
-  const compacted = compactify(tokenTree);
-  const size = JSON.stringify(compacted).length;
-  if (size > MAX_SIZE) {
+  //   const compacted = compactify(tokenTree);
+  const compacted = JSON.stringify(rule);
+  if (compacted.length > MAX_SIZE) {
     return {
       type: 'ERROR',
-      message: `Rule size exceeds the maximum size of ${MAX_SIZE} bytes: ${size}`,
+      message: `Rule size exceeds the maximum size of ${MAX_SIZE} bytes: ${compacted.length}`,
       index: 0,
     };
   }
-  return compacted;
+  return rule;
 };
 
 /**
@@ -127,6 +125,12 @@ const ACTUATOR_TYPES = [
 type ValidationFunc = (...args: DataType[]) => boolean;
 
 const FUNCTION_TYPES = [
+  {
+    name: 'NOP',
+    args: 0,
+    returnType: 'void',
+    validateArgs: (() => true) as ValidationFunc,
+  },
   {
     name: 'IF',
     args: 3,
@@ -217,71 +221,6 @@ const FUNCTION_TYPES = [
 /* ~~~~~~~~~~~~~~~~~~~~ Parse raw string into nested list structure ~~~~~~~~~~~~~~~~~ */
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-type StringListTreeNode = (string | StringListTreeNode)[];
-type NestedListResult =
-  | { type: 'NLR'; tree: StringListTreeNode; index: number }
-  | Err;
-
-/**
- * Recursively parses the input string into a nested list structure.
- * eg: '(a, (b, c), d)' => ['a', ['b', 'c'], 'd']
- */
-const recursivelyParseNestedLists = (
-  input: string,
-  index: number,
-): NestedListResult => {
-  const tree: StringListTreeNode = [];
-
-  if (input[index] !== '(') {
-    return {
-      type: 'ERROR',
-      message: `Expected opening paren at index ${index}`,
-      index,
-    };
-  }
-
-  index++; // skip the opening paren
-  let arg = ''; // current argument
-
-  while (index < input.length) {
-    const c = input[index];
-    switch (c) {
-      case '(':
-        if (arg !== '') {
-          return { type: 'ERROR', message: `Unexpected opening parens`, index };
-        }
-        const result = recursivelyParseNestedLists(input, index);
-        if (result.type === 'ERROR') {
-          return result;
-        }
-        const { tree: childTree, index: newIndex } = result;
-        tree.push(childTree);
-        index = newIndex - 1;
-        break;
-      case ',':
-      case ')':
-        if (arg) tree.push(arg);
-        arg = '';
-        if (c === ')') return { type: 'NLR', tree, index: index + 1 };
-        break;
-      case ' ':
-      case '\n':
-      case '\r':
-      case '\t':
-        // ignore whitespace
-        break;
-      default:
-        arg += c;
-    }
-    index++;
-  }
-  return {
-    type: 'ERROR',
-    message: `Expected closing paren at index ${index}`,
-    index,
-  };
-};
-
 type FunctionToken = {
   type: 'function';
   name: (typeof FUNCTION_TYPES)[number]['name'];
@@ -337,43 +276,49 @@ export type TokenListTreeNode = {
  * 1: Tokenize the arguments
  * 2: Return the token list tree
  */
-const tokenizeArguments = (
-  node: StringListTreeNode,
-  path = [],
-): TokenListTreeNode | Err => {
+const tokenizeArguments = (node: any, path = []): TokenListTreeNode | Err => {
+  if (!Array.isArray(node)) {
+    return {
+      type: 'ERROR',
+      message: `Expected array at path ${path.join('.')}`,
+      index: 0,
+    } as Err;
+  }
+
   const tokenizedArgs: (Token | TokenListTreeNode | Err)[] = node.map(
     (arg, i) => {
-      if (typeof arg !== 'string') {
+      if (Array.isArray(arg)) {
         return tokenizeArguments(arg, [...path, i]);
       }
 
-      const func = FUNCTION_TYPES.find((f) => f.name === arg);
-      if (func) {
-        return { type: 'function', name: func.name } as FunctionToken;
+      if (typeof arg === 'string') {
+        const func = FUNCTION_TYPES.find((f) => f.name === arg);
+        if (func) {
+          return { type: 'function', name: func.name } as FunctionToken;
+        }
+        const sensor = SENSOR_TYPES.find((s) => s.name === arg);
+        if (sensor) {
+          return { type: 'sensor', name: sensor.name } as SensorToken;
+        }
+        const actuator = ACTUATOR_TYPES.find((a) => a.name === arg);
+        if (actuator) {
+          return { type: 'actuator', name: actuator.name } as ActuatorToken;
+        }
+        if (arg.match(/^@\d{2}:\d{2}$/)) {
+          return { type: 'time', value: arg } as TimeToken;
+        }
+      }
+      if (typeof arg === 'boolean') {
+        return { type: 'bool', value: arg } as BooleanToken;
       }
 
-      const sensor = SENSOR_TYPES.find((s) => s.name === arg);
-      if (sensor) {
-        return { type: 'sensor', name: sensor.name } as SensorToken;
+      if (typeof arg === 'number') {
+        if (Number.isInteger(arg)) {
+          return { type: 'int', value: arg } as IntToken;
+        }
+        return { type: 'float', value: arg } as FloatToken;
       }
-      const actuator = ACTUATOR_TYPES.find((a) => a.name === arg);
-      if (actuator) {
-        return { type: 'actuator', name: actuator.name } as ActuatorToken;
-      }
-      const int = parseInt(arg);
-      if (!isNaN(int)) {
-        return { type: 'int', value: int } as IntToken;
-      }
-      const float = parseFloat(arg);
-      if (!isNaN(float)) {
-        return { type: 'float', value: float } as FloatToken;
-      }
-      if (arg === 'true' || arg === 'false') {
-        return { type: 'bool', value: arg === 'true' } as BooleanToken;
-      }
-      if (arg.match(/^@\d{2}:\d{2}$/)) {
-        return { type: 'time', value: arg } as TimeToken;
-      }
+
       return {
         type: 'ERROR',
         message: `Unrecognized argument "${arg}" at path ${[...path, i].join(
@@ -502,57 +447,18 @@ const compactify = (node: TokenListTreeNode) => {
 
 // console.log(
 //   parseInputString(
-//     '(IF, (EQ, currentTime, @12:30),(SET, relay_1, true), (SET, relay_1, false))',
+//     '["IF", ["EQ", "currentTime", "@12:30"], ["SET", "relay_1", true], ["SET", "relay_1", false]]',
 //   ),
 // );
 
 // console.log(
 //   parseInputString(
-//     '(IF, (EQ, lightSwitch, true),(SET, relay_1, true), (SET, relay_1, false))',
+//     '["IF", ["EQ", "lightSwitch", true], ["SET", "relay_1", true], ["SET", "relay_1", false]]',
 //   ),
 // );
 
 /*
-(
-    IF,
-    (EQ, currentTime, @12:30),
-    (
-       IF,
-       (EQ, currentTime, @12:30),
-       (
-          IF,
-          (EQ, currentTime, @12:30),
-          (SET, relay_1, true),
-          (SET, relay_1, false)
-       ),
-       (
-          IF,
-          (EQ, currentTime, @12:30),
-          (SET, relay_1, true),
-          (SET, relay_1, false)
-       )
-    ),
-    (
-       IF,
-       (EQ, currentTime, @12:30),
-       (
-          IF,
-          (EQ, currentTime, @12:30),
-          (SET, relay_1, true),
-          (SET, relay_1, false)
-       ),
-       (
-          IF,
-          (EQ, currentTime, @12:30),
-          (SET, relay_1, true),
-          (SET, relay_1, false)
-       )
-    )
-    )
-*/
-
-/*
-JSON equivalent:
+Too large example:
 
 [
     "IF",
