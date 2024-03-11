@@ -8,9 +8,12 @@
 #include "time_helpers.h"
 #include <map>
 #include "json.h"
-#include "../preact/build/static_files.h"
+// #include "../preact/build/static_files.h"
+#include <ArduinoJson.h>
+#include <ESPAsyncWebServer.h>
+#include <AsyncTCP.h>
 
-WebServer server(80);
+AsyncWebServer server(80);
 
 /**
  * Convert celsius to fahrenheit
@@ -38,127 +41,137 @@ String getRelayValues()
     });
 }
 
-void getRelays()
+void getRelays(AsyncWebServerRequest *request)
 {
-    server.send(200, "application/json", getRelayValues());
+    request->send(200, "application/json", getRelayValues());
 }
 
-void setRelay(String arg, int pin)
+void setRelay(AsyncWebServerRequest *request, String arg, int pin)
 {
-    if (!server.hasArg(arg))
+    if (!request->hasParam(arg, true))
     {
         return;
     }
-    bool relay = server.arg(arg).toInt() > 0;
+    bool relay = request->getParam(arg, true)->value().toInt() > 0;
     digitalWrite(pin, relay);
     RELAY_VALUES[pin] = relay;
 }
 
-void setRelays()
+void setRelays(AsyncWebServerRequest *request)
 {
-    setRelay("relay_1", RELAY_1_PIN);
-    setRelay("relay_2", RELAY_2_PIN);
-    setRelay("relay_3", RELAY_3_PIN);
-    setRelay("relay_4", RELAY_4_PIN);
-    setRelay("relay_5", RELAY_5_PIN);
-    setRelay("relay_6", RELAY_6_PIN);
-    setRelay("relay_7", RELAY_7_PIN);
-    setRelay("relay_8", RELAY_8_PIN);
+    setRelay(request, "relay_1", RELAY_1_PIN);
+    setRelay(request, "relay_2", RELAY_2_PIN);
+    setRelay(request, "relay_3", RELAY_3_PIN);
+    setRelay(request, "relay_4", RELAY_4_PIN);
+    setRelay(request, "relay_5", RELAY_5_PIN);
+    setRelay(request, "relay_6", RELAY_6_PIN);
+    setRelay(request, "relay_7", RELAY_7_PIN);
+    setRelay(request, "relay_8", RELAY_8_PIN);
     writeRelayValues();
-    getRelays();
+    getRelays(request);
 }
 
-void handleWifiSettings()
+// void handleWifiSettings(AsyncWebServerRequest *request)
+// {
+//     if (!server.hasArg("ssid") || !server.hasArg("password"))
+//     {
+//         request->send(404, "text/plain", "Wifi Name or Wifi Password not found");
+//         return;
+//     }
+//     SSID = server.arg("ssid");
+//     PASSWORD = server.arg("password");
+
+//     writeWifiCredentials(SSID, PASSWORD);
+
+//     request->send(200, "text/plain", "Wifi Name and Wifi Password updated. Restarting...");
+
+//     delay(1000);
+//     ESP.restart();
+// }
+void handleWifiSettings(AsyncWebServerRequest *request)
 {
-    if (!server.hasArg("ssid") || !server.hasArg("password"))
+    if (!request->hasParam("ssid", true) || !request->hasParam("password", true))
     {
-        server.send(404, "text/plain", "Wifi Name or Wifi Password not found");
+        request->send(404, "text/plain", "Wifi Name or Wifi Password not found");
         return;
     }
-    SSID = server.arg("ssid");
-    PASSWORD = server.arg("password");
+    // Parameters are accessed differently in ESPAsyncWebServer
+    SSID = request->getParam("ssid", true)->value();
+    PASSWORD = request->getParam("password", true)->value();
 
     writeWifiCredentials(SSID, PASSWORD);
 
-    server.send(200, "text/plain", "Wifi Name and Wifi Password updated. Restarting...");
+    request->send(200, "text/plain", "Wifi Name and Wifi Password updated. Restarting...");
 
     delay(1000);
     ESP.restart();
 }
 
-void handleNotFound()
+void handleNotFound(AsyncWebServerRequest *request)
 {
     String message = "File Not Found\n\n";
     message += "URI: ";
-    message += server.uri();
+    message += request->url();
     message += "\nMethod: ";
-    message += (server.method() == HTTP_GET) ? "GET" : "POST";
+    message += (request->method() == HTTP_GET) ? "GET" : "POST";
     message += "\nArguments: ";
-    message += server.args();
+    message += request->args();
     message += "\n";
-    for (uint8_t i = 0; i < server.args(); i++)
+    for (uint8_t i = 0; i < request->args(); i++)
     {
-        message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+        message += " " + request->argName(i) + ": " + request->arg(i) + "\n";
     }
-    server.send(404, "text/plain", message);
+    request->send(404, "text/plain", message);
 }
 
-void serverLoop()
-{
-    server.handleClient();
-}
+// // async version:
+// void setupPreactPage()
+// {
+//     // Optional, defines the default entrypoint
+//     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+//               { request->send_P(200, "text/html", static_files::f_index_html_contents, static_files::f_index_html_size); });
 
-void setupPreactPage()
-{
+//     // Create a route handler for each of the build artifacts
+//     for (int i = 0; i < static_files::num_of_files; i++)
+//     {
+//         server.on(static_files::files[i].path, [i](AsyncWebServerRequest *request)
+//                   { request->send_P(200, static_files::files[i].type, static_files::files[i].contents, static_files::files[i].size); });
+//     }
+// }
 
-    // Optional, defines the default entrypoint
-    server.on("/", HTTP_GET, []
-              {
-            server.sendHeader("Content-Encoding", "gzip");
-            server.send_P(200, "text/html", (const char *)static_files::f_index_html_contents, static_files::f_index_html_size); });
-
-    // Create a route handler for each of the build artifacts
-    for (int i = 0; i < static_files::num_of_files; i++)
-    {
-        server.on(static_files::files[i].path, [i]
-                  {
-            server.sendHeader("Content-Encoding", "gzip");
-            server.send_P(200, static_files::files[i].type, (const char *)static_files::files[i].contents, static_files::files[i].size); });
-    }
-}
-
+// async version:
 void setupOTAUpdate()
 {
+
+    // Rest of your code...
+
     // OTA update
     server.on(
-        "/update", HTTP_POST, []()
+        "/update", HTTP_POST, [](AsyncWebServerRequest *request)
         {
-      server.sendHeader("Connection", "close");
-      server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
-      ESP.restart(); },
-        []()
+            AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
+            response->addHeader("Connection", "close");
+            request->send(response);
+            ESP.restart(); },
+        [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
         {
-            HTTPUpload &upload = server.upload();
-            if (upload.status == UPLOAD_FILE_START)
+            if (!index)
             {
-                Serial.printf("Update: %s\n", upload.filename.c_str());
-                if (!Update.begin())
+                Serial.printf("Update: %s\n", filename.c_str());
+                if (!Update.begin(UPDATE_SIZE_UNKNOWN))
                 { // start with max available size
                     Update.printError(Serial);
                 }
             }
-            else if (upload.status == UPLOAD_FILE_WRITE)
+            if (Update.write(data, len) != len)
             {
-                if (Update.write(upload.buf, upload.currentSize) != upload.currentSize)
-                {
-                    Update.printError(Serial);
-                }
+                Update.printError(Serial);
             }
-            else if (upload.status == UPLOAD_FILE_END)
+            if (final)
             {
                 if (Update.end(true))
                 { // true to set the size to the current progress
-                    Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
+                    Serial.printf("Update Success: %u\nRebooting...\n", index + len);
                 }
                 else
                 {
@@ -169,10 +182,10 @@ void setupOTAUpdate()
         });
 }
 
-void getGlobalInfo()
+void getGlobalInfo(AsyncWebServerRequest *request)
 {
     // clang-format off
-    server.send(
+    request->send(
         200,
         "application/json",
         buildJson({
@@ -185,11 +198,11 @@ void getGlobalInfo()
     );
 }
 
-void getSensorInfo()
+void getSensorInfo(AsyncWebServerRequest *request)
 {
     int light = analogRead(PHOTO_SENSOR_PIN);
     int switchV = digitalRead(LIGHT_SWITCH_PIN);
-    server.send(
+    request->send(
         200,
         "application/json",
         buildJson({
@@ -200,13 +213,25 @@ void getSensorInfo()
             {"Switch", String(switchV)}
         })
     );
-
 }
 
-void onReset()
+// void getRules(AsyncWebServerRequest *request)
+// {
+//     // request->send(200, "application/json", getRulesJson());
+// }
+
+// void setRules(AsyncWebServerRequest *request)
+// {
+//     // parse json payload
+//     DynamicJsonDocument doc(512);
+//     deserializeJson(doc, server.arg("plain"));
+
+// }
+
+void onReset(AsyncWebServerRequest *request)
 {
     // hardware reset
-    server.send(200, "application/json", buildJson({{"ResetCounter", String(RESET_COUNTER)}}));
+    request->send(200, "application/json", buildJson({{"ResetCounter", String(RESET_COUNTER)}}));
     delay(200);
     ESP.restart();
 }
@@ -224,8 +249,10 @@ void serverSetup()
     server.on("/relays", HTTP_POST, setRelays);
     server.on("/sensor-info", HTTP_GET, getSensorInfo);
     server.on("/reset", HTTP_POST, onReset);
+    // server.on("/rules", HTTP_GET, getRules);
+    // server.on("/rules", HTTP_POST, setRules);
     server.onNotFound(handleNotFound);
-    setupPreactPage();
+    // setupPreactPage();
     setupOTAUpdate();
 
     server.begin();

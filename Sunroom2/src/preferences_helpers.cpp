@@ -82,6 +82,28 @@ void setupRelay()
     RELAY_VALUES[RELAY_8_PIN] = readPreference("relay8", "0").toInt() == 1;
 }
 
+/**
+ * Rules are json blobs that define the conditions for a relay to be turned on or off
+*/
+void setupRelayRules() {
+
+}
+
+// DynamicJsonDocument doc(1024);
+void setRelayRule(DynamicJsonDocument doc) {
+    // doc["relay"] = 1;
+    // doc["type"] = "temperature";
+    // doc["condition"] = ">";
+    // doc["value"] = 23;
+    // doc["action"] = "on";
+    // doc["enabled"] = true;
+    // doc["id"] = 1;
+    // doc["name"] = "Turn on fan when temperature is above 23c";
+    // doc["description"] = "This rule turns on the fan when the temperature is above 23c";
+    // doc["created_at"] = "2021-01-01T00:00:00Z";
+    // doc["updated_at"] = "2021-01-01T00:00:00Z";
+}
+
 void setupPreferences()
 {
     SSID = readPreference("ssid", "");

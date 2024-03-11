@@ -7,6 +7,7 @@ import {
   CurrentSensorActuatorValues,
   InputConditionConfigs,
 } from './types';
+import { parseInputString, Err, TokenListTreeNode } from './RuleParser';
 
 const PORTAL_ROOT_ID = 'portal-root';
 
@@ -121,22 +122,22 @@ const NEXT_RELAY_STATE = {
 
 const RelayControls = () => {
   const [relayState, setRelayState] = useState<RelayState>({
-    // relay_1: 'LOADING',
-    // relay_2: 'LOADING',
-    // relay_3: 'LOADING',
-    // relay_4: 'LOADING',
-    // relay_5: 'LOADING',
-    // relay_6: 'LOADING',
-    // relay_7: 'LOADING',
-    // relay_8: 'LOADING',
-    relay_1: '0',
-    relay_2: 'auto',
-    relay_3: '0',
-    relay_4: '1',
-    relay_5: '0',
-    relay_6: '1',
-    relay_7: '0',
-    relay_8: '0',
+    relay_1: 'LOADING',
+    relay_2: 'LOADING',
+    relay_3: 'LOADING',
+    relay_4: 'LOADING',
+    relay_5: 'LOADING',
+    relay_6: 'LOADING',
+    relay_7: 'LOADING',
+    relay_8: 'LOADING',
+    // relay_1: '0',
+    // relay_2: 'auto',
+    // relay_3: '0',
+    // relay_4: '1',
+    // relay_5: '0',
+    // relay_6: '1',
+    // relay_7: '0',
+    // relay_8: '0',
   });
 
   const [automateDialogRelay, setAutomateDialogRelay] = useState<Relay | null>(
@@ -233,50 +234,98 @@ type AutomateDialogProps = {
 };
 
 const AutomateDialog = ({ relay, onClose }: AutomateDialogProps) => {
-  const [rule, setRule] = useState<Rule | null>(null);
+  // const [rule, setRule] = useState<Rule | null>(null);
+  const [rule, setRule] = useState<string>('');
+  const [validationResult, setValidationResult] = useState<
+    TokenListTreeNode | Err
+  >(null);
+  const submitDisabled =
+    !validationResult || validationResult?.type === 'ERROR';
 
-  const [currentSensorActuatorValues, setCurrentSensorActuatorValues] =
-    useState<CurrentSensorActuatorValues | null>(null);
+  // const [currentSensorActuatorValues, setCurrentSensorActuatorValues] =
+  //   useState<CurrentSensorActuatorValues | null>(null);
 
-  const [inputConditionConfigs, setInputConditionConfigs] =
-    useState<InputConditionConfigs | null>(null);
+  // const [inputConditionConfigs, setInputConditionConfigs] =
+  //   useState<InputConditionConfigs | null>(null);
 
   useEffect(() => {
     const load = async () => {
       if (relay === null) return;
       const data = await fetch(`/rules/${relay}`);
       const json = await data.json();
-      setRule(json);
+      setRule(json.value);
     };
     load();
   }, [relay]);
 
-  useEffect(() => {
-    const load = async () => {
-      const data = await fetch('/current-sensor-actuator-values');
-      const json = await data.json();
-      setCurrentSensorActuatorValues(json);
-    };
-    load();
-  }, []);
+  // useEffect(() => {
+  //   const load = async () => {
+  //     const data = await fetch('/current-sensor-actuator-values');
+  //     const json = await data.json();
+  //     setCurrentSensorActuatorValues(json);
+  //   };
+  //   load();
+  // }, []);
 
-  useEffect(() => {
-    const load = async () => {
-      const data = await fetch('/input-condition-configs');
-      const json = await data.json();
-      setInputConditionConfigs(json);
-    };
-    load();
-  }, []);
+  // useEffect(() => {
+  //   const load = async () => {
+  //     const data = await fetch('/input-condition-configs');
+  //     const json = await data.json();
+  //     setInputConditionConfigs(json);
+  //   };
+  //   load();
+  // }, []);
 
   if (relay === null) return <></>;
 
   const label = RELAY_LABELS[relay];
 
+  const submit = async () => {
+    if (submitDisabled) {
+      return;
+    }
+    try {
+      await fetch(`/rules/${relay}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ v: validationResult }),
+      });
+      onClose();
+    } catch (error) {
+      console.error(error);
+      alert('Error submitting rule');
+    }
+  };
+
   return (
     <FullScreenDialog onClose={onClose}>
       <div className="AutomateDialog">
         <h3>Automate {label}</h3>
+        <textarea
+          value={rule}
+          onChange={(ev) => setRule(ev.currentTarget.value)}
+          style={{ width: '100%', height: '200px' }}
+        ></textarea>
+        <div className="Buttons">
+          <button onClick={() => setValidationResult(parseInputString(rule))}>
+            Validate
+          </button>
+          <button onClick={() => submit()} disabled={submitDisabled}>
+            Submit
+          </button>
+        </div>
+
+        {/* display validation result */}
+        {validationResult && (
+          <div>
+            <h4>Validation Result</h4>
+            <pre>{JSON.stringify(validationResult, null, 2)}</pre>
+          </div>
+        )}
+
+        {/* display current sensor actuator values */}
       </div>
     </FullScreenDialog>
   );

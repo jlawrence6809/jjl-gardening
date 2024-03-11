@@ -1,9 +1,10 @@
 #include <Arduino.h>
 #include <map>
+#include <ArduinoJson.h>
 // #include "credentials.h"
 
 // VARIABLES
-const char *WIFI_NAME = "sunroom2";
+const char *WIFI_NAME = "sunroom3";
 
 // Note: must be longer than 8 characters
 const char *AP_PASSWORD = "esp32iscool!";
@@ -37,3 +38,12 @@ int TURN_LIGHTS_OFF_AT_MINUTE = -1;
 std::map<int, bool> RELAY_VALUES;
 
 int RESET_COUNTER = 0;
+
+// DynamicJsonDocument relay_1_rules(512);
+// DynamicJsonDocument relay_2_rules(512);
+// DynamicJsonDocument relay_3_rules(512);
+// DynamicJsonDocument relay_4_rules(512);
+// DynamicJsonDocument relay_5_rules(512);
+// DynamicJsonDocument relay_6_rules(512);
+// DynamicJsonDocument relay_7_rules(512);
+// DynamicJsonDocument relay_8_rules(512);

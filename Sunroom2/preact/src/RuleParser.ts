@@ -1,9 +1,11 @@
+const MAX_SIZE = 256;
+
 /**
  * Lexes the input string into a nested list structure and validates the function names and number of arguments. (LISP like syntax)
  *
  * eg: '(IF,b,(EQ, x, y),d)' => ['IF', 'b', ['EQ', 'x', 'y'], 'd']
  */
-const parseInputString = (input: string) => {
+export const parseInputString = (input: string): TokenListTreeNode | Err => {
   const result = recursivelyParseNestedLists(input, 0);
   if (result.type === 'ERROR') {
     return result;
@@ -19,7 +21,6 @@ const parseInputString = (input: string) => {
   }
 
   const tokenTree = tokenizeArguments(listTree);
-
   if (tokenTree.type === 'ERROR') {
     return tokenTree;
   }
@@ -29,19 +30,22 @@ const parseInputString = (input: string) => {
     return validation;
   }
 
-  return listTree;
+  const compacted = compactify(tokenTree);
+  const size = JSON.stringify(compacted).length;
+  if (size > MAX_SIZE) {
+    return {
+      type: 'ERROR',
+      message: `Rule size exceeds the maximum size of ${MAX_SIZE} bytes: ${size}`,
+      index: 0,
+    };
+  }
+  return compacted;
 };
-
-console.log(
-  parseInputString(
-    '(IF, EQ(lightSwitch, true), SET(relay_1, true), SET(relay_1, false))',
-  ),
-);
 
 /**
  * Generic error type
  */
-type Err = { type: 'ERROR'; message: string; index: number };
+export type Err = { type: 'ERROR'; message: string; index: number };
 
 /**
  * Types that represent the different data types that can be used in the rule engine.
@@ -52,9 +56,9 @@ type DataType =
   | 'bool'
   | 'time'
   | 'void'
-  | 'settable_int'
-  | 'settable_float'
-  | 'settable_bool';
+  | 's_int'
+  | 's_float'
+  | 's_bool';
 
 /**
  * Sensors available on the device.
@@ -62,15 +66,15 @@ type DataType =
 const SENSOR_TYPES = [
   {
     name: 'temperature',
-    dataType: 'float', // fahrenheit
+    dataType: 'int', // -40 - 85
   },
   {
     name: 'humidity',
-    dataType: 'float', // percentage
+    dataType: 'int', // 0 - 100
   },
   {
     name: 'photoSensor',
-    dataType: 'float', // percentage
+    dataType: 'int', // 0 - 2555?
   },
   {
     name: 'currentTime',
@@ -88,35 +92,35 @@ const SENSOR_TYPES = [
 const ACTUATOR_TYPES = [
   {
     name: 'relay_1',
-    dataType: 'settable_bool',
+    dataType: 's_bool',
   },
   {
     name: 'relay_2',
-    dataType: 'settable_bool',
+    dataType: 's_bool',
   },
   {
     name: 'relay_3',
-    dataType: 'settable_bool',
+    dataType: 's_bool',
   },
   {
     name: 'relay_4',
-    dataType: 'settable_bool',
+    dataType: 's_bool',
   },
   {
     name: 'relay_5',
-    dataType: 'settable_bool',
+    dataType: 's_bool',
   },
   {
     name: 'relay_6',
-    dataType: 'settable_bool',
+    dataType: 's_bool',
   },
   {
     name: 'relay_7',
-    dataType: 'settable_bool',
+    dataType: 's_bool',
   },
   {
     name: 'relay_8',
-    dataType: 'settable_bool',
+    dataType: 's_bool',
   },
 ] as const;
 
@@ -203,9 +207,9 @@ const FUNCTION_TYPES = [
     args: 2,
     returnType: 'void',
     validateArgs: ((actuator: DataType, val: DataType) =>
-      (actuator === 'settable_bool' && val === 'bool') ||
-      (actuator === 'settable_int' && val === 'int') ||
-      (actuator === 'settable_float' && val === 'float')) as ValidationFunc,
+      (actuator === 's_bool' && val === 'bool') ||
+      (actuator === 's_int' && val === 'int') ||
+      (actuator === 's_float' && val === 'float')) as ValidationFunc,
   },
 ] as const;
 
@@ -215,7 +219,7 @@ const FUNCTION_TYPES = [
 
 type StringListTreeNode = (string | StringListTreeNode)[];
 type NestedListResult =
-  | { type: 'NestedListResult'; tree: StringListTreeNode; index: number }
+  | { type: 'NLR'; tree: StringListTreeNode; index: number }
   | Err;
 
 /**
@@ -252,14 +256,13 @@ const recursivelyParseNestedLists = (
         }
         const { tree: childTree, index: newIndex } = result;
         tree.push(childTree);
-        index = newIndex;
+        index = newIndex - 1;
         break;
       case ',':
       case ')':
-        tree.push(arg);
+        if (arg) tree.push(arg);
         arg = '';
-        if (c === ')')
-          return { type: 'NestedListResult', tree, index: index + 1 };
+        if (c === ')') return { type: 'NLR', tree, index: index + 1 };
         break;
       case ' ':
       case '\n':
@@ -272,7 +275,6 @@ const recursivelyParseNestedLists = (
     }
     index++;
   }
-  // throw new Error('Expected closing paren');
   return {
     type: 'ERROR',
     message: `Expected closing paren at index ${index}`,
@@ -324,7 +326,7 @@ type Token =
   | BooleanToken
   | TimeToken;
 
-type TokenListTreeNode = {
+export type TokenListTreeNode = {
   type: 'node';
   children: (Token | TokenListTreeNode)[];
 };
@@ -337,12 +339,12 @@ type TokenListTreeNode = {
  */
 const tokenizeArguments = (
   node: StringListTreeNode,
-  path = [0],
+  path = [],
 ): TokenListTreeNode | Err => {
   const tokenizedArgs: (Token | TokenListTreeNode | Err)[] = node.map(
     (arg, i) => {
       if (typeof arg !== 'string') {
-        return tokenizeArguments(arg, [...path, i + 1]);
+        return tokenizeArguments(arg, [...path, i]);
       }
 
       const func = FUNCTION_TYPES.find((f) => f.name === arg);
@@ -382,7 +384,7 @@ const tokenizeArguments = (
     },
   );
   const argError = tokenizedArgs.find((arg) => arg.type === 'ERROR');
-  if (argError.type === 'ERROR') {
+  if (argError?.type === 'ERROR') {
     return argError;
   }
 
@@ -403,7 +405,7 @@ const tokenizeArguments = (
  */
 const recursivelyValidateFunctions = (
   node: TokenListTreeNode,
-  path = [0],
+  path = [],
 ): { type: DataType } | Err => {
   const pathStr = path.join('.');
   const { children } = node;
@@ -427,9 +429,13 @@ const recursivelyValidateFunctions = (
     };
   }
 
-  const argTypes = args.map((arg) => {
+  const argTypes = args.map((arg, i) => {
     if (arg.type === 'node') {
-      return recursivelyValidateFunctions(arg, path);
+      const result = recursivelyValidateFunctions(arg, [...path, i + 1]);
+      if (result.type === 'ERROR') {
+        return result;
+      }
+      return result.type;
     }
     if (arg.type === 'function') {
       return {
@@ -469,3 +475,76 @@ const recursivelyValidateFunctions = (
 
   return { type: funcData.returnType };
 };
+
+/**
+ * Shrink down keys and values as much as possible.
+ */
+const compactify = (node: TokenListTreeNode) => {
+  return node.children.map((child) => {
+    if (child.type === 'node') {
+      return compactify(child);
+    }
+    if (child.type === 'function') {
+      return child.name;
+    }
+    if (child.type === 'sensor' || child.type === 'actuator') {
+      return child.name;
+    }
+    if (child.type === 'float') {
+      return `${child.value.toFixed()}f`;
+    }
+    if (child.type === 'bool') {
+      return child.value ? '1' : '0';
+    }
+    return child.value;
+  });
+};
+
+// console.log(
+//   parseInputString(
+//     '(IF, (EQ, currentTime, @12:30),(SET, relay_1, true), (SET, relay_1, false))',
+//   ),
+// );
+
+// console.log(
+//   parseInputString(
+//     '(IF, (EQ, lightSwitch, true),(SET, relay_1, true), (SET, relay_1, false))',
+//   ),
+// );
+
+// (
+//     IF,
+//     (EQ, currentTime, @12:30),
+//     (
+//        IF,
+//        (EQ, currentTime, @12:30),
+//        (
+//           IF,
+//           (EQ, currentTime, @12:30),
+//           (SET, relay_1, true),
+//           (SET, relay_1, false)
+//        ),
+//        (
+//           IF,
+//           (EQ, currentTime, @12:30),
+//           (SET, relay_1, true),
+//           (SET, relay_1, false)
+//        )
+//     ),
+//     (
+//        IF,
+//        (EQ, currentTime, @12:30),
+//        (
+//           IF,
+//           (EQ, currentTime, @12:30),
+//           (SET, relay_1, true),
+//           (SET, relay_1, false)
+//        ),
+//        (
+//           IF,
+//           (EQ, currentTime, @12:30),
+//           (SET, relay_1, true),
+//           (SET, relay_1, false)
+//        )
+//     )
+//     )

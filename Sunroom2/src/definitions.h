@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <map>
+#include <ArduinoJson.h>
 
 #pragma once
 
@@ -29,6 +30,15 @@ constexpr int RELAY_8_PIN = 19;
 
 // Pin values
 extern std::map<int, bool> RELAY_VALUES;
+
+// extern DynamicJsonDocument relay_1_rules;
+// extern DynamicJsonDocument relay_2_rules;
+// extern DynamicJsonDocument relay_3_rules;
+// extern DynamicJsonDocument relay_4_rules;
+// extern DynamicJsonDocument relay_5_rules;
+// extern DynamicJsonDocument relay_6_rules;
+// extern DynamicJsonDocument relay_7_rules;
+// extern DynamicJsonDocument relay_8_rules;
 
 // VARIABLES
 extern const char *WIFI_NAME;
