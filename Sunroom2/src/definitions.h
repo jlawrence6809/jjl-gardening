@@ -13,7 +13,7 @@ constexpr int DS18B20_PIN = 23; // Digital pin connected to the DHT sensor
 // constexpr int HEAT_MAT_PIN = 17;
 
 /**
- * Analog
+ * SENSORS
  */
 constexpr int PHOTO_SENSOR_PIN = 36;
 constexpr int LIGHT_SWITCH_PIN = 39;
@@ -62,6 +62,9 @@ extern float CURRENT_PROBE_TEMPERATURE;
 extern bool IS_HEAT_MAT_ON;
 extern bool IS_FAN_ON;
 extern float LED_LEVEL;
+
+extern int LIGHT_LEVEL;
+extern int IS_SWITCH_ON;
 
 extern float DESIRED_TEMPERATURE;
 extern float TEMPERATURE_RANGE;

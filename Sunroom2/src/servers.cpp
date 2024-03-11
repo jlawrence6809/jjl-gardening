@@ -8,12 +8,16 @@
 #include "time_helpers.h"
 #include <map>
 #include "json.h"
-// #include "../preact/build/static_files.h"
+#include "../preact/build/static_files.h"
 #include <ArduinoJson.h>
 #include <ESPAsyncWebServer.h>
 #include <AsyncTCP.h>
 
 AsyncWebServer server(80);
+
+String JSON_CONTENT_TYPE = "application/json";
+String PLAIN_TEXT_CONTENT_TYPE = "text/plain";
+String HTML_CONTENT_TYPE = "text/html";
 
 /**
  * Convert celsius to fahrenheit
@@ -43,7 +47,7 @@ String getRelayValues()
 
 void getRelays(AsyncWebServerRequest *request)
 {
-    request->send(200, "application/json", getRelayValues());
+    request->send(200, JSON_CONTENT_TYPE, getRelayValues());
 }
 
 void setRelay(AsyncWebServerRequest *request, String arg, int pin)
@@ -71,28 +75,11 @@ void setRelays(AsyncWebServerRequest *request)
     getRelays(request);
 }
 
-// void handleWifiSettings(AsyncWebServerRequest *request)
-// {
-//     if (!server.hasArg("ssid") || !server.hasArg("password"))
-//     {
-//         request->send(404, "text/plain", "Wifi Name or Wifi Password not found");
-//         return;
-//     }
-//     SSID = server.arg("ssid");
-//     PASSWORD = server.arg("password");
-
-//     writeWifiCredentials(SSID, PASSWORD);
-
-//     request->send(200, "text/plain", "Wifi Name and Wifi Password updated. Restarting...");
-
-//     delay(1000);
-//     ESP.restart();
-// }
 void handleWifiSettings(AsyncWebServerRequest *request)
 {
     if (!request->hasParam("ssid", true) || !request->hasParam("password", true))
     {
-        request->send(404, "text/plain", "Wifi Name or Wifi Password not found");
+        request->send(404, PLAIN_TEXT_CONTENT_TYPE, "Wifi Name or Wifi Password not found");
         return;
     }
     // Parameters are accessed differently in ESPAsyncWebServer
@@ -101,7 +88,7 @@ void handleWifiSettings(AsyncWebServerRequest *request)
 
     writeWifiCredentials(SSID, PASSWORD);
 
-    request->send(200, "text/plain", "Wifi Name and Wifi Password updated. Restarting...");
+    request->send(200, PLAIN_TEXT_CONTENT_TYPE, "Wifi Name and Wifi Password updated. Restarting...");
 
     delay(1000);
     ESP.restart();
@@ -121,35 +108,34 @@ void handleNotFound(AsyncWebServerRequest *request)
     {
         message += " " + request->argName(i) + ": " + request->arg(i) + "\n";
     }
-    request->send(404, "text/plain", message);
+    request->send(404, PLAIN_TEXT_CONTENT_TYPE, message);
 }
 
-// // async version:
-// void setupPreactPage()
-// {
-//     // Optional, defines the default entrypoint
-//     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-//               { request->send_P(200, "text/html", static_files::f_index_html_contents, static_files::f_index_html_size); });
+void setupPreactPage()
+{
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+              { 
+                  AsyncWebServerResponse *response = request->beginResponse_P(200, HTML_CONTENT_TYPE, static_files::f_index_html_contents, static_files::f_index_html_size);
+                  response->addHeader("Content-Encoding", "gzip");
+                  request->send(response); });
 
-//     // Create a route handler for each of the build artifacts
-//     for (int i = 0; i < static_files::num_of_files; i++)
-//     {
-//         server.on(static_files::files[i].path, [i](AsyncWebServerRequest *request)
-//                   { request->send_P(200, static_files::files[i].type, static_files::files[i].contents, static_files::files[i].size); });
-//     }
-// }
+    for (int i = 0; i < static_files::num_of_files; i++)
+    {
+        server.on(static_files::files[i].path, [i](AsyncWebServerRequest *request)
+                  { 
+                      AsyncWebServerResponse *response = request->beginResponse_P(200, static_files::files[i].type, static_files::files[i].contents, static_files::files[i].size);
+                      response->addHeader("Content-Encoding", "gzip");
+                      request->send(response); });
+    }
+}
 
-// async version:
 void setupOTAUpdate()
 {
-
-    // Rest of your code...
-
     // OTA update
     server.on(
         "/update", HTTP_POST, [](AsyncWebServerRequest *request)
         {
-            AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
+            AsyncWebServerResponse *response = request->beginResponse(200, PLAIN_TEXT_CONTENT_TYPE, (Update.hasError()) ? "FAIL" : "OK");
             response->addHeader("Connection", "close");
             request->send(response);
             ESP.restart(); },
@@ -185,9 +171,7 @@ void setupOTAUpdate()
 void getGlobalInfo(AsyncWebServerRequest *request)
 {
     // clang-format off
-    request->send(
-        200,
-        "application/json",
+    request->send(200, JSON_CONTENT_TYPE,
         buildJson({
             {"ChipId", String(CHIP_ID, HEX)},
             {"ResetCounter", String(RESET_COUNTER)},
@@ -196,23 +180,23 @@ void getGlobalInfo(AsyncWebServerRequest *request)
             {"Core", String(xPortGetCoreID())}
         })
     );
+    // clang-format on
+    Serial.println("GET /global-info done");
 }
 
 void getSensorInfo(AsyncWebServerRequest *request)
 {
-    int light = analogRead(PHOTO_SENSOR_PIN);
-    int switchV = digitalRead(LIGHT_SWITCH_PIN);
+    Serial.println("GET /sensor-info");
     request->send(
         200,
-        "application/json",
-        buildJson({
-            {"Temperature", String(cToF(CURRENT_TEMPERATURE), 2)},
-            {"Humidity", String(CURRENT_HUMIDITY, 2)},
-            {"ProbeTemperature", String(cToF(CURRENT_PROBE_TEMPERATURE), 2)},
-            {"Light", String(light)},
-            {"Switch", String(switchV)}
-        })
-    );
+        JSON_CONTENT_TYPE,
+        buildJson({{"Temperature", String(cToF(CURRENT_TEMPERATURE), 2)},
+                   {"Humidity", String(CURRENT_HUMIDITY, 2)},
+                   {"ProbeTemperature", String(cToF(CURRENT_PROBE_TEMPERATURE), 2)},
+                   {"Light", String(LIGHT_LEVEL)},
+                   {"Switch", String(IS_SWITCH_ON)}}));
+
+    Serial.println("GET /sensor-info done");
 }
 
 // void getRules(AsyncWebServerRequest *request)
@@ -231,7 +215,7 @@ void getSensorInfo(AsyncWebServerRequest *request)
 void onReset(AsyncWebServerRequest *request)
 {
     // hardware reset
-    request->send(200, "application/json", buildJson({{"ResetCounter", String(RESET_COUNTER)}}));
+    request->send(200, JSON_CONTENT_TYPE, buildJson({{"ResetCounter", String(RESET_COUNTER)}}));
     delay(200);
     ESP.restart();
 }
@@ -251,9 +235,9 @@ void serverSetup()
     server.on("/reset", HTTP_POST, onReset);
     // server.on("/rules", HTTP_GET, getRules);
     // server.on("/rules", HTTP_POST, setRules);
-    server.onNotFound(handleNotFound);
-    // setupPreactPage();
+    setupPreactPage();
     setupOTAUpdate();
+    server.onNotFound(handleNotFound);
 
     server.begin();
 }

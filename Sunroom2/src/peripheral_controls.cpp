@@ -5,7 +5,6 @@
 #include "time_helpers.h"
 
 static Timer timer(30000);
-int LAST_SWITCH_VALUE = 0;
 int SUNROOM_LIGHTS_RELAY = RELAY_7_PIN;
 
 void turnOffRelay(int pin)
@@ -53,7 +52,7 @@ void photoSensorSetup()
 void lightSwitchSetup()
 {
     pinMode(LIGHT_SWITCH_PIN, INPUT);
-    LAST_SWITCH_VALUE = digitalRead(LIGHT_SWITCH_PIN);
+    IS_SWITCH_ON = digitalRead(LIGHT_SWITCH_PIN);
 }
 
 // void turnOffFan()
@@ -111,7 +110,7 @@ void peripheralControlsSetup()
 void lightSwitchLoop()
 {
     int switchV = digitalRead(LIGHT_SWITCH_PIN);
-    if (switchV != LAST_SWITCH_VALUE)
+    if (switchV != IS_SWITCH_ON)
     {
         bool sunroomV = RELAY_VALUES[SUNROOM_LIGHTS_RELAY];
         if (switchV == 1 && sunroomV == 0)
@@ -122,7 +121,7 @@ void lightSwitchLoop()
         {
             turnOffRelay(SUNROOM_LIGHTS_RELAY);
         }
-        LAST_SWITCH_VALUE = switchV;
+        IS_SWITCH_ON = switchV;
     }
 }
 
@@ -138,7 +137,12 @@ void controlPeripheralsLoop()
         return;
     }
 
+    Serial.println("Free heap:");
+    Serial.println(ESP.getFreeHeap());
+
     Serial.println("Checking peripherals...");
+
+    LIGHT_LEVEL = analogRead(PHOTO_SENSOR_PIN);
 
     // 1: if the temperature is too high outside of the variance we need to turn off the heat mat
     // 2: if it is double the variance then we need to emergency turn off the lights and turn on the fan

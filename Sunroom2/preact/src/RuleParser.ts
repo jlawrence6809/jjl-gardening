@@ -512,39 +512,83 @@ const compactify = (node: TokenListTreeNode) => {
 //   ),
 // );
 
-// (
-//     IF,
-//     (EQ, currentTime, @12:30),
-//     (
-//        IF,
-//        (EQ, currentTime, @12:30),
-//        (
-//           IF,
-//           (EQ, currentTime, @12:30),
-//           (SET, relay_1, true),
-//           (SET, relay_1, false)
-//        ),
-//        (
-//           IF,
-//           (EQ, currentTime, @12:30),
-//           (SET, relay_1, true),
-//           (SET, relay_1, false)
-//        )
-//     ),
-//     (
-//        IF,
-//        (EQ, currentTime, @12:30),
-//        (
-//           IF,
-//           (EQ, currentTime, @12:30),
-//           (SET, relay_1, true),
-//           (SET, relay_1, false)
-//        ),
-//        (
-//           IF,
-//           (EQ, currentTime, @12:30),
-//           (SET, relay_1, true),
-//           (SET, relay_1, false)
-//        )
-//     )
-//     )
+/*
+(
+    IF,
+    (EQ, currentTime, @12:30),
+    (
+       IF,
+       (EQ, currentTime, @12:30),
+       (
+          IF,
+          (EQ, currentTime, @12:30),
+          (SET, relay_1, true),
+          (SET, relay_1, false)
+       ),
+       (
+          IF,
+          (EQ, currentTime, @12:30),
+          (SET, relay_1, true),
+          (SET, relay_1, false)
+       )
+    ),
+    (
+       IF,
+       (EQ, currentTime, @12:30),
+       (
+          IF,
+          (EQ, currentTime, @12:30),
+          (SET, relay_1, true),
+          (SET, relay_1, false)
+       ),
+       (
+          IF,
+          (EQ, currentTime, @12:30),
+          (SET, relay_1, true),
+          (SET, relay_1, false)
+       )
+    )
+    )
+*/
+
+/*
+JSON equivalent:
+
+[
+    "IF",
+    ["EQ", "currentTime", "@12:30"],
+    [
+        "IF",
+        ["EQ", "currentTime", "@12:30"],
+        [
+            "IF",
+            ["EQ", "currentTime", "@12:30"],
+            ["SET", "relay_1", true],
+            ["SET", "relay_1", false]
+        ],
+        [
+            "IF",
+            ["EQ", "currentTime", "@12:30"],
+            ["SET", "relay_1", true],
+            ["SET", "relay_1", false]
+        ]
+    ],
+    [
+        "IF",
+        ["EQ", "currentTime", "@12:30"],
+        [
+            "IF",
+            ["EQ", "currentTime", "@12:30"],
+            ["SET", "relay_1", true],
+            ["SET", "relay_1", false]
+        ],
+        [
+            "IF",
+            ["EQ", "currentTime", "@12:30"],
+            ["SET", "relay_1", true],
+            ["SET", "relay_1", false]
+        ]
+    ]
+]
+
+*/

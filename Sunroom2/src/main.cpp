@@ -51,5 +51,3 @@ void loop()
   controlPeripheralsLoop();
   delay(10);
 }
-
-// 132kb

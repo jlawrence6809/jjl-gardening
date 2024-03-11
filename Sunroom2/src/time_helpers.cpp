@@ -102,9 +102,13 @@ void updateTimeLoop()
         dst_offset);
 }
 
+/**
+ * Returns the current time as a string
+ * passes 0 in the ms argument of getLocalTime so it isn't blocking.
+ */
 String getLocalTimeString()
 {
     struct tm timeinfo;
-    getLocalTime(&timeinfo);
+    getLocalTime(&timeinfo, 0);
     return String(asctime(&timeinfo));
 }

@@ -35,6 +35,9 @@ bool USE_NATURAL_LIGHTING_CYCLE = false;
 int TURN_LIGHTS_ON_AT_MINUTE = -1;
 int TURN_LIGHTS_OFF_AT_MINUTE = -1;
 
+int LIGHT_LEVEL = -1;
+int IS_SWITCH_ON = 0;
+
 std::map<int, bool> RELAY_VALUES;
 
 int RESET_COUNTER = 0;
