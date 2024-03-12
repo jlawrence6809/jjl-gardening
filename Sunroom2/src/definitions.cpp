@@ -39,5 +39,13 @@ int TURN_LIGHTS_OFF_AT_MINUTE = -1;
 int LIGHT_LEVEL = -1;
 int IS_SWITCH_ON = 0;
 
-bool RELAY_VALUES[RELAY_COUNT] = {false};
+enum RelayValue
+{
+    FORCE_OFF = 0,
+    FORCE_ON = 1,
+    AUTO_OFF = 2,
+    AUTO_ON = 3
+};
+
+int RELAY_VALUES[RELAY_COUNT] = {false};
 String RELAY_RULES[RELAY_COUNT] = {};

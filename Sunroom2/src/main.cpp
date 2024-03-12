@@ -9,16 +9,9 @@
 #include "peripheral_controls.h"
 #include "time_helpers.h"
 
-// look into: https://github.com/kj831ca/KasaSmartPlug
+// Keep an eye on this: https://github.com/microsoft/devicescript
 
-// void serverTask(void *parameter)
-// {
-//   for (;;)
-//   {
-//     serverLoop();
-//     delay(1);
-//   }
-// }
+// look into: https://github.com/kj831ca/KasaSmartPlug
 
 void setup(void)
 {
@@ -30,15 +23,6 @@ void setup(void)
   // temperatureProbeSetup();
   peripheralControlsSetup();
   serverSetup();
-  // xTaskCreatePinnedToCore(
-  //     serverTask,   /* Function to implement the task */
-  //     "serverTask", /* Name of the task */
-  //     10000,        /* Stack size in words */
-  //     NULL,         /* Task input parameter */
-  //     0,            /* Priority of the task */
-  //     NULL,         /* Task handle. */
-  //     0             /* Core where the task should run */
-  // );
   Serial.println("~~~ SETUP FINISHED ~~~");
 }
 
