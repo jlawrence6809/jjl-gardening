@@ -5,23 +5,24 @@
 #include "interval_timer.h"
 #include <ArduinoJson.h>
 #include <map>
+#include <functional>
 
 /**
  * Turn on or off a relay
+ *
+ * value = 2 means dont care
+ * value = 1 means auto on
+ * value = 0 means auto off
  */
-void turnOnRelay(int index, bool value)
+void setRelay(int index, int value)
 {
-    Serial.println("Setting relay_" + String(index) + " to " + String(value));
-    if (value)
-    {
-        RELAY_VALUES[index] = 1;
-        digitalWrite(RELAY_PINS[index], HIGH);
-    }
-    else
-    {
-        RELAY_VALUES[index] = 0;
-        digitalWrite(RELAY_PINS[index], LOW);
-    }
+    RelayValue currentValue = RELAY_VALUES[index];
+
+    // lowest (ones) tenths digit is the "force" value that we don't want to change, just update the auto value (tens digit)
+    int onesDigit = currentValue % 10;
+    int newValue = (value * 10) + onesDigit;
+
+    RELAY_VALUES[index] = static_cast<RelayValue>(newValue);
 }
 
 float getTemperature()
@@ -47,19 +48,26 @@ float getLightSwitch()
 }
 
 /**
- * Actuator to getter function mapping
- *
- * For now only bool actuators are supported
+ * Actuator to setter function mapping
  */
-std::map<String, void (*)(int, bool)> BOOL_ACTUATOR_MAP = {
-    {"relay_0", turnOnRelay},
-    {"relay_1", turnOnRelay},
-    {"relay_2", turnOnRelay},
-    {"relay_3", turnOnRelay},
-    {"relay_4", turnOnRelay},
-    {"relay_5", turnOnRelay},
-    {"relay_6", turnOnRelay},
-    {"relay_7", turnOnRelay},
+
+std::map<String, std::function<void(int)>> ACTUATOR_SETTER_MAP = {
+    {"relay_0",
+     std::bind(setRelay, 0, std::placeholders::_1)},
+    {"relay_1",
+     std::bind(setRelay, 1, std::placeholders::_1)},
+    {"relay_2",
+     std::bind(setRelay, 2, std::placeholders::_1)},
+    {"relay_3",
+     std::bind(setRelay, 3, std::placeholders::_1)},
+    {"relay_4",
+     std::bind(setRelay, 4, std::placeholders::_1)},
+    {"relay_5",
+     std::bind(setRelay, 5, std::placeholders::_1)},
+    {"relay_6",
+     std::bind(setRelay, 6, std::placeholders::_1)},
+    {"relay_7",
+     std::bind(setRelay, 7, std::placeholders::_1)},
 };
 
 /**
@@ -98,44 +106,44 @@ int getCurrentMinutes()
 /**
  * Create a rule return value
  */
-RuleReturn createRuleReturn(TypeCode type, ErrorCode errorCode, bool boolV, int intV, float floatV, int timeV, void (*actuatorSetter)(int, bool), int actuatorSetterIndex)
+RuleReturn createRuleReturn(TypeCode type, ErrorCode errorCode, bool boolV, int intV, float floatV, int timeV, std::function<void(int)> actuatorSetter)
 {
-    return {type, errorCode, boolV, intV, floatV, timeV, actuatorSetter, actuatorSetterIndex};
+    return {type, errorCode, boolV, intV, floatV, timeV, actuatorSetter};
 }
 
 RuleReturn createErrorRuleReturn(ErrorCode errorCode)
 {
-    return createRuleReturn(ERROR_TYPE, errorCode, false, 0, 0.0, 0, 0, 0);
+    return createRuleReturn(ERROR_TYPE, errorCode, false, 0, 0.0, 0, 0);
 }
 
 RuleReturn createBoolRuleReturn(bool boolV)
 {
-    return createRuleReturn(BOOL_TYPE, NO_ERROR, boolV, 0, 0.0, 0, 0, 0);
+    return createRuleReturn(BOOL_TYPE, NO_ERROR, boolV, 0, 0.0, 0, 0);
 }
 
 RuleReturn createIntRuleReturn(int intV)
 {
-    return createRuleReturn(INT_TYPE, NO_ERROR, false, intV, 0.0, 0, 0, 0);
+    return createRuleReturn(INT_TYPE, NO_ERROR, false, intV, 0.0, 0, 0);
 }
 
 RuleReturn createFloatRuleReturn(float floatV)
 {
-    return createRuleReturn(FLOAT_TYPE, NO_ERROR, false, 0, floatV, 0, 0, 0);
+    return createRuleReturn(FLOAT_TYPE, NO_ERROR, false, 0, floatV, 0, 0);
 }
 
 RuleReturn createVoidRuleReturn()
 {
-    return createRuleReturn(VOID_TYPE, NO_ERROR, false, 0, 0.0, 0, 0, 0);
+    return createRuleReturn(VOID_TYPE, NO_ERROR, false, 0, 0.0, 0, 0);
 }
 
 RuleReturn createTimeRuleReturn(int timeV)
 {
-    return createRuleReturn(TIME_TYPE, NO_ERROR, false, 0, 0.0, timeV, 0, 0);
+    return createRuleReturn(TIME_TYPE, NO_ERROR, false, 0, 0.0, timeV, 0);
 }
 
-RuleReturn createBoolActuatorRuleReturn(void (*actuatorSetter)(int, bool), int actuatorSetterIndex)
+RuleReturn createBoolActuatorRuleReturn(std::function<void(int)> actuatorSetter)
 {
-    return createRuleReturn(BOOL_ACTUATOR_TYPE, NO_ERROR, false, 0, 0.0, 0, actuatorSetter, actuatorSetterIndex);
+    return createRuleReturn(BOOL_ACTUATOR_TYPE, NO_ERROR, false, 0, 0.0, 0, actuatorSetter);
 }
 
 /**
@@ -143,7 +151,7 @@ RuleReturn createBoolActuatorRuleReturn(void (*actuatorSetter)(int, bool), int a
  */
 RuleReturn processRelayRule(JsonVariantConst doc)
 {
-    RuleReturn voidReturn = createRuleReturn(VOID_TYPE, NO_ERROR, false, 0, 0.0, 0, 0, 0);
+    RuleReturn voidReturn = createRuleReturn(VOID_TYPE, NO_ERROR, false, 0, 0.0, 0, 0);
 
     if (!doc.is<JsonArrayConst>())
     {
@@ -156,10 +164,9 @@ RuleReturn processRelayRule(JsonVariantConst doc)
                 return createTimeRuleReturn(mintuesFromHHMM(str));
             }
             // check if in actuator map
-            if (BOOL_ACTUATOR_MAP.find(str) != BOOL_ACTUATOR_MAP.end())
+            if (ACTUATOR_SETTER_MAP.find(str) != ACTUATOR_SETTER_MAP.end())
             {
-                int index = str.substring(6, 7).toInt();
-                return createBoolActuatorRuleReturn(BOOL_ACTUATOR_MAP[str], index);
+                return createBoolActuatorRuleReturn(ACTUATOR_SETTER_MAP[str]);
             }
 
             // check if in sensor map
@@ -229,7 +236,7 @@ RuleReturn processRelayRule(JsonVariantConst doc)
             return createErrorRuleReturn(BOOL_ACTUATOR_ERROR);
         }
 
-        actuatorResult.actuatorSetter(actuatorResult.actuatorSetterIndex, valResult.boolV);
+        actuatorResult.actuatorSetter(valResult.boolV ? 1 : 0);
         return voidReturn;
     }
     else if (type == "AND" || type == "OR")
@@ -337,7 +344,6 @@ void printRuleReturn(RuleReturn result)
     Serial.println("\tintV: " + String(result.intV));
     Serial.println("\tfloatV: " + String(result.floatV));
     Serial.println("\ttimeV: " + String(result.timeV));
-    Serial.println("\tactuatorSetterIndex: " + String(result.actuatorSetterIndex));
 }
 
 /**
@@ -349,6 +355,9 @@ void processRelayRules()
     {
         Serial.println("Processing relay rule:");
         Serial.println(RELAY_RULES[i]);
+
+        // Set the relay auto digit to dont care
+        setRelay(i, 2);
 
         // parse json
         DynamicJsonDocument doc(1024);
@@ -366,7 +375,7 @@ void processRelayRules()
         if (result.type == BOOL_ACTUATOR_TYPE)
         {
             Serial.println("Setting actuator");
-            result.actuatorSetter(result.actuatorSetterIndex, result.boolV);
+            result.actuatorSetter(result.boolV ? 1 : 0);
         }
         else if (result.type != VOID_TYPE)
         {

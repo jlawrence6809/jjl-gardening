@@ -21,8 +21,23 @@ constexpr int LIGHT_SWITCH_PIN = 39;
 constexpr int RELAY_COUNT = 8;
 constexpr int RELAY_PINS[RELAY_COUNT] = {15, 2, 4, 16, 17, 5, 18, 19};
 
-// Pin values, using 10 just to be safe
-extern bool RELAY_VALUES[RELAY_COUNT];
+// Pin values
+enum RelayValue
+{
+    FORCE_OFF_AUTO_OFF = 00,
+    FORCE_OFF_AUTO_ON = 10,
+    FORCE_OFF_AUTO_X = 20,
+    FORCE_ON_AUTO_OFF = 01,
+    FORCE_ON_AUTO_ON = 11,
+    FORCE_ON_AUTO_X = 21,
+    FORCE_X_AUTO_OFF = 02,
+    FORCE_X_AUTO_ON = 12,
+    /**
+     * Relay will be off.
+     */
+    FORCE_X_AUTO_X = 22,
+};
+extern RelayValue RELAY_VALUES[RELAY_COUNT];
 
 // array of rule string pointers
 extern String RELAY_RULES[RELAY_COUNT];

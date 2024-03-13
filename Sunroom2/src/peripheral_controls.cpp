@@ -6,21 +6,21 @@
 #include <ArduinoJson.h>
 #include "rule_helpers.h"
 
-static Timer timer(5000);
+static Timer timer(30000);
 int SUNROOM_LIGHTS_RELAY = 6;
 
 void turnOffRelay(int relay)
 {
     int pin = RELAY_PINS[relay];
     digitalWrite(pin, HIGH);
-    RELAY_VALUES[relay] = false;
+    RELAY_VALUES[relay] = FORCE_OFF_AUTO_X;
 }
 
 void turnOnRelay(int relay)
 {
     int pin = RELAY_PINS[relay];
     digitalWrite(pin, LOW);
-    RELAY_VALUES[relay] = true;
+    RELAY_VALUES[relay] = FORCE_ON_AUTO_X;
 }
 
 void setupRelays()
@@ -29,15 +29,20 @@ void setupRelays()
     {
         int pin = RELAY_PINS[i];
         pinMode(pin, OUTPUT);
-        turnOffRelay(pin);
+        digitalWrite(pin, HIGH);
     }
+}
+
+bool isRelayOn(RelayValue value)
+{
+    return value == FORCE_ON_AUTO_X || value == FORCE_ON_AUTO_ON || value == FORCE_ON_AUTO_OFF || value == FORCE_X_AUTO_ON;
 }
 
 void relayRefresh()
 {
     for (int i = 0; i < RELAY_COUNT; i++)
     {
-        digitalWrite(RELAY_PINS[i], !RELAY_VALUES[i]);
+        digitalWrite(RELAY_PINS[i], !isRelayOn(RELAY_VALUES[i]));
     }
 }
 
@@ -59,20 +64,6 @@ void lightSwitchSetup()
     IS_SWITCH_ON = digitalRead(LIGHT_SWITCH_PIN);
 }
 
-void turnOffAllPeripherals()
-{
-    // turnOffFan();
-    // turnOffHeatMat();
-    // RELAY_VALUES[RELAY_1_PIN] = 0;
-    // RELAY_VALUES[RELAY_2_PIN] = 0;
-    // RELAY_VALUES[RELAY_3_PIN] = 0;
-    // RELAY_VALUES[RELAY_4_PIN] = 0;
-    // RELAY_VALUES[RELAY_5_PIN] = 0;
-    // RELAY_VALUES[RELAY_6_PIN] = 0;
-    // RELAY_VALUES[RELAY_7_PIN] = 0;
-    // RELAY_VALUES[RELAY_8_PIN] = 0;
-}
-
 void peripheralControlsSetup()
 {
     setupRelays();
@@ -85,7 +76,7 @@ void lightSwitchLoop()
     int switchV = digitalRead(LIGHT_SWITCH_PIN);
     if (switchV != IS_SWITCH_ON)
     {
-        bool sunroomV = RELAY_VALUES[SUNROOM_LIGHTS_RELAY];
+        bool sunroomV = isRelayOn(RELAY_VALUES[SUNROOM_LIGHTS_RELAY]);
         if (switchV == 1 && sunroomV == 0)
         {
             turnOnRelay(SUNROOM_LIGHTS_RELAY);
@@ -113,7 +104,5 @@ void controlPeripheralsLoop()
     Serial.println("Free heap:");
     Serial.println(ESP.getFreeHeap());
     LIGHT_LEVEL = analogRead(PHOTO_SENSOR_PIN);
-
-    Serial.println("Processing relay rules...");
     processRelayRules();
 }

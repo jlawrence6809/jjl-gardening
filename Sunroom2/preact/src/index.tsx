@@ -97,7 +97,20 @@ const SensorInfo = () => {
   );
 };
 
-type RelayStateValue = '0' | '1' | 'auto' | 'loading';
+/*
+ * 0 = off, 1 = on, 2 = x/dont care
+ */
+type RelaySubState = 0 | 1 | 2;
+
+/**
+ * Ones digit: force digit (0 = off, 1 = on, 2 = x/dont care)
+ * Tens digit: auto digit (0 = off, 1 = on, 2 = x/dont care)
+ */
+type RelaySubmissionValue = `${RelaySubState}${RelaySubState}`;
+type RelayStateValue = {
+  force: RelaySubState;
+  auto: RelaySubState;
+};
 type Relay =
   | 'relay_0'
   | 'relay_1'
@@ -107,16 +120,43 @@ type Relay =
   | 'relay_5'
   | 'relay_6'
   | 'relay_7';
-type RelayState = Record<Relay, RelayStateValue>;
 
-const NEXT_RELAY_STATE = {
-  '0': '1',
-  '1': 'auto',
-  auto: '0',
-} as const;
+/**
+ * Convert from the relay state submission value to the relay state value.
+ */
+const getRelayStateValues = (
+  blob: Record<Relay, RelaySubmissionValue>,
+): Record<Relay, RelayStateValue> => {
+  return Object.fromEntries(
+    Object.entries(blob).map(([key, rawValue]) => {
+      const value = parseInt(rawValue);
+      const onesDigit = (value % 10) as RelaySubState;
+      const tensDigit = Math.floor(value / 10) as RelaySubState;
+      return [key, { force: onesDigit, auto: tensDigit }];
+    }),
+  ) as Record<Relay, RelayStateValue>;
+};
+
+/**
+ * This is the order:
+ * force off -> force on -> force x -> force off -> etc...
+ * So do not modify the tens digit, just the ones digit (force digit).
+ */
+const getNextRelayState = (current: RelayStateValue): RelayStateValue => {
+  const { force, auto } = current;
+  const nextForce = ((force + 1) % 3) as RelaySubState;
+  return { force: nextForce, auto };
+};
+
+const getRelaySubmissionValue = (
+  current: RelayStateValue,
+): RelaySubmissionValue =>
+  `${current.force}${current.auto}` as RelaySubmissionValue;
 
 const RelayControls = () => {
-  const [relayState, setRelayState] = useState<RelayState>({
+  const [relayState, setRelayState] = useState<
+    Record<Relay, RelayStateValue | 'loading'>
+  >({
     relay_0: 'loading',
     relay_1: 'loading',
     relay_2: 'loading',
@@ -125,14 +165,14 @@ const RelayControls = () => {
     relay_5: 'loading',
     relay_6: 'loading',
     relay_7: 'loading',
-    // relay_0: '0',
-    // relay_1: '0',
-    // relay_2: 'auto',
-    // relay_3: '0',
-    // relay_4: '1',
-    // relay_5: '0',
-    // relay_6: '1',
-    // relay_7: '0',
+    // relay_0: { force: 0, auto: 0 },
+    // relay_1: { force: 1, auto: 0 },
+    // relay_2: { force: 2, auto: 0 },
+    // relay_3: { force: 0, auto: 1 },
+    // relay_4: { force: 1, auto: 1 },
+    // relay_5: { force: 2, auto: 1 },
+    // relay_6: { force: 0, auto: 2 },
+    // relay_7: { force: 1, auto: 2 },
   });
 
   const [automateDialogRelay, setAutomateDialogRelay] = useState<Relay | null>(
@@ -147,13 +187,14 @@ const RelayControls = () => {
     const load = async () => {
       const data = await fetch('/relays');
       const json = await data.json();
-      setRelayState(json);
+      setRelayState(getRelayStateValues(json));
     };
     load();
   }, []);
 
   const handleSubmit = async (relay: Relay, value: RelayStateValue) => {
     const previousState = relayState[relay];
+    if (previousState === 'loading') return;
     setRelayState({
       ...relayState,
       [relay]: 'loading',
@@ -161,14 +202,13 @@ const RelayControls = () => {
 
     try {
       const data = new FormData();
-      data.append(relay, value);
+      data.append(relay, getRelaySubmissionValue(value));
       const response = await fetch('/relays', {
         method: 'POST',
         body: data,
       });
       const json = await response.json();
-
-      setRelayState(json);
+      setRelayState(getRelayStateValues(json));
     } catch (_error) {
       setRelayState({
         ...relayState,
@@ -186,21 +226,20 @@ const RelayControls = () => {
         const relay = `relay_${i}` as Relay;
         const value = relayState[relay];
         const label = RELAY_LABELS[relay];
-        const name = relay;
+
+        let stateClasses = 'loading';
+        if (value !== 'loading') {
+          stateClasses = `auto_${value.auto} force_${value.force}`;
+        }
 
         return (
-          // <ToggleSwitch
-          //   key={relay}
-          //   name={relay}
-          //   label={RELAY_LABELS[relay]}
-          //   value={relayState[relay]}
-          //   onChange={(value) => handleSubmit(relay, value)}
-          // />
-
           <div
             key={relay}
-            className={`ToggleSwitch state_${value}`}
-            onClick={() => handleSubmit(relay, NEXT_RELAY_STATE[value])}
+            className={`ToggleSwitch ${stateClasses}`}
+            onClick={() =>
+              value !== 'loading' &&
+              handleSubmit(relay, getNextRelayState(value))
+            }
           >
             <div
               className={'AutomateButton'}
@@ -239,12 +278,6 @@ const AutomateDialog = ({ relay, onClose }: AutomateDialogProps) => {
 
   const relayIdx = relay === null ? null : parseInt(relay?.split('_')?.[1]);
 
-  // const [currentSensorActuatorValues, setCurrentSensorActuatorValues] =
-  //   useState<CurrentSensorActuatorValues | null>(null);
-
-  // const [inputConditionConfigs, setInputConditionConfigs] =
-  //   useState<InputConditionConfigs | null>(null);
-
   useEffect(() => {
     const load = async () => {
       if (relayIdx === null) return;
@@ -254,24 +287,6 @@ const AutomateDialog = ({ relay, onClose }: AutomateDialogProps) => {
     };
     load();
   }, [relayIdx]);
-
-  // useEffect(() => {
-  //   const load = async () => {
-  //     const data = await fetch('/current-sensor-actuator-values');
-  //     const json = await data.json();
-  //     setCurrentSensorActuatorValues(json);
-  //   };
-  //   load();
-  // }, []);
-
-  // useEffect(() => {
-  //   const load = async () => {
-  //     const data = await fetch('/input-condition-configs');
-  //     const json = await data.json();
-  //     setInputConditionConfigs(json);
-  //   };
-  //   load();
-  // }, []);
 
   if (relay === null) return <></>;
 
@@ -388,39 +403,6 @@ const Section = ({ className = '', title, children }: SectionProps) => {
     <div className={`Section ${className}`}>
       <h2>{title}</h2>
       {children}
-    </div>
-  );
-};
-
-type ToggleSwitchProps = {
-  name: string;
-  label: string;
-  value: RelayStateValue;
-  onChange: (value: RelayStateValue) => void;
-};
-
-/**
- * ToggleSwitch
- */
-const ToggleSwitch = ({ name, label, value, onChange }: ToggleSwitchProps) => {
-  const inputId = `hidden-${name}`;
-
-  return (
-    <div
-      className={`ToggleSwitch state_${value}`}
-      onClick={() => {
-        const input = document.getElementById(inputId) as HTMLInputElement;
-        const newValue = {
-          '0': '1',
-          '1': 'auto',
-          auto: '0',
-        }[value];
-        input.value = newValue;
-        onChange(newValue);
-      }}
-    >
-      <input id={inputId} className="hidden-input" name={name} value={value} />
-      {label}
     </div>
   );
 };

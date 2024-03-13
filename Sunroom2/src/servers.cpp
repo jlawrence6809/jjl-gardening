@@ -12,6 +12,7 @@
 #include <ArduinoJson.h>
 #include <ESPAsyncWebServer.h>
 #include <AsyncTCP.h>
+#include "rule_helpers.h"
 
 bool POST_PARAM = true;
 bool GET_PARAM = false;
@@ -56,12 +57,11 @@ void setRelays(AsyncWebServerRequest *request)
         String relayParam = "relay_" + String(i);
         if (request->hasParam(relayParam, POST_PARAM))
         {
-            bool value = request->getParam(relayParam, POST_PARAM)->value().toInt() > 0;
-            RELAY_VALUES[i] = value;
-            digitalWrite(RELAY_PINS[i], value);
+            RELAY_VALUES[i] = static_cast<RelayValue>(request->getParam(relayParam, POST_PARAM)->value().toInt());
         }
     }
 
+    processRelayRules();
     writeRelayValues();
     getRelays(request);
 }

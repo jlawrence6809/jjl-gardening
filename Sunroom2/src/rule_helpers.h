@@ -1,5 +1,6 @@
 #pragma once
 #include <ArduinoJson.h>
+#include <functional>
 
 enum TypeCode
 {
@@ -23,7 +24,8 @@ enum ErrorCode
     COMPARISON_TYPE_ERROR = 6,
     COMPARISON_TYPE_EQUALITY_ERROR = 7,
     UNREC_FUNC_ERROR = 8,
-    UNREC_STR_ERROR = 9
+    UNREC_STR_ERROR = 9,
+    UNREC_ACTUATOR_ERROR = 10,
 };
 
 struct RuleReturn
@@ -34,8 +36,7 @@ struct RuleReturn
     int intV;
     float floatV;
     int timeV;
-    void (*actuatorSetter)(int, bool);
-    int actuatorSetterIndex;
+    std::function<void(int)> actuatorSetter;
 };
 
 void processRelayRules();

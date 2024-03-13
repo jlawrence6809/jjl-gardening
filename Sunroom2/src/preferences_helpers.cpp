@@ -52,7 +52,7 @@ void writeRelayValues()
 {
     for (int i = 0; i < RELAY_COUNT; i++)
     {
-        writePreference(("relay" + String(i)).c_str(), (char *)String(RELAY_VALUES[i] ? 1 : 0).c_str());
+        writePreference(("rly" + String(i)).c_str(), (char *)String(RELAY_VALUES[i]).c_str());
     }
 }
 
@@ -68,7 +68,7 @@ void setupRelay()
 {
     for (int i = 0; i < RELAY_COUNT; i++)
     {
-        RELAY_VALUES[i] = readPreference(("relay" + String(i)).c_str(), "0").toInt() == 1;
+        RELAY_VALUES[i] = static_cast<RelayValue>(readPreference(("rly" + String(i)).c_str(), "0").toInt());
         /**
          * Rules are json blobs that define the conditions for a relay to be turned on or off
          */

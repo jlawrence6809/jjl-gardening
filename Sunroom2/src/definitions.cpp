@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include "definitions.h"
-// #include "credentials.h"
 
 // VARIABLES
 const char *WIFI_NAME = "sunroom3";
@@ -39,13 +38,5 @@ int TURN_LIGHTS_OFF_AT_MINUTE = -1;
 int LIGHT_LEVEL = -1;
 int IS_SWITCH_ON = 0;
 
-enum RelayValue
-{
-    FORCE_OFF = 0,
-    FORCE_ON = 1,
-    AUTO_OFF = 2,
-    AUTO_ON = 3
-};
-
-int RELAY_VALUES[RELAY_COUNT] = {false};
+RelayValue RELAY_VALUES[RELAY_COUNT] = {FORCE_OFF_AUTO_X};
 String RELAY_RULES[RELAY_COUNT] = {};

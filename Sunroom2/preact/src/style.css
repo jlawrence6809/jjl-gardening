@@ -58,23 +58,34 @@ h1 {
   cursor: pointer;
 
   position: relative;
+
+  border: 5px solid #ccc;
 }
 
-.ToggleSwitch.state_loading {
+.ToggleSwitch.loading {
   background-color: #ccc;
 }
 
-.ToggleSwitch.state_auto {
-  /* blue */
-  background-color: #007bff;
-}
-
-.ToggleSwitch.state_1 {
-  background-color: green;
-}
-
-.ToggleSwitch.state_0 {
+.ToggleSwitch.force_0 {
   background-color: red;
+  border-color: red;
+}
+
+.ToggleSwitch.force_1 {
+  background-color: green;
+  border-color: green;
+}
+
+.ToggleSwitch.force_2 {
+  border-color: blue;
+}
+
+.ToggleSwitch.force_2.auto_0 {
+  background-color: red;
+}
+
+.ToggleSwitch.force_2.auto_1 {
+  background-color: green;
 }
 
 .AutomateButton {
