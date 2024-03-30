@@ -88,6 +88,11 @@ h1 {
   background-color: green;
 }
 
+/* Two don't cares is an off state */
+.ToggleSwitch.force_2.auto_2 {
+  background-color: red;
+}
+
 .AutomateButton {
   position: absolute;
   top: 5px;
@@ -148,4 +153,11 @@ hr {
 
 label {
   margin-right: 10px;
+}
+
+/* Pencil emoji, flip it backwards */
+.Pencil {
+  transform: scaleX(-1);
+  display: inline-block;
+  margin-left: 5px;
 }

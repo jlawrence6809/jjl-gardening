@@ -2,7 +2,7 @@
 #include "definitions.h"
 
 // VARIABLES
-const char *WIFI_NAME = "sunroom3";
+const char *WIFI_NAME = "barn";
 
 // Note: must be longer than 8 characters
 const char *AP_PASSWORD = "esp32iscool!";
@@ -38,5 +38,8 @@ int TURN_LIGHTS_OFF_AT_MINUTE = -1;
 int LIGHT_LEVEL = -1;
 int IS_SWITCH_ON = 0;
 
+uint32_t FREE_HEAP = 0;
+
 RelayValue RELAY_VALUES[RELAY_COUNT] = {FORCE_OFF_AUTO_X};
 String RELAY_RULES[RELAY_COUNT] = {};
+String RELAY_LABELS[RELAY_COUNT] = {};

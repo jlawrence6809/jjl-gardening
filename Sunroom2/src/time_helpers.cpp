@@ -7,31 +7,50 @@
 #include <HTTPClient.h>
 
 static String WORLDTIME_API = "http://worldtimeapi.org/api/ip";
-static Timer timer(5 * 60 * 1000);
+// Refresh the time every 24 hours
+static Timer refreshTimer(24 * 60 * 60 * 1000, true);
+static Timer initializeTimer(5 * 60 * 1000, true);
 constexpr int MINUTES_IN_DAY = 24 * 60;
+
+long RAW_OFFSET = 0;
+long DST_OFFSET = 0;
+
+bool TIME_IS_SET = false;
+bool TIMEZONE_OFFSET_IS_SET = false;
 
 /**
  * Query for the time from the internet
  */
-void queryForTime(long raw_offset, long dst_offset)
+void queryForTime()
 {
     Serial.println("Querying for time...");
-    configTime(raw_offset, dst_offset, "pool.ntp.org", "time.nist.gov");
-    while (!time(nullptr))
+    configTime(RAW_OFFSET, DST_OFFSET, "pool.ntp.org", "time.nist.gov");
+}
+
+void checkTimeIsSet()
+{
+    if (TIME_IS_SET)
     {
-        Serial.print(".");
-        delay(1000);
+        return;
     }
-    struct tm timeinfo;
-    getLocalTime(&timeinfo); // Fix: Pass the address of timeinfo
-    String timeString = String(asctime(&timeinfo));
-    Serial.println("\nTime is set: " + timeString);
+    if (time(nullptr))
+    {
+        TIME_IS_SET = true;
+        struct tm timeinfo;
+        getLocalTime(&timeinfo); // Fix: Pass the address of timeinfo
+        String timeString = String(asctime(&timeinfo));
+        Serial.println("\nTime is set: " + timeString);
+    }
+    else
+    {
+        queryForTime();
+    }
 }
 
 /**
  * Use the worldtimeapi.org API to get the timezone offset based on the IP address
  */
-void queryForTimezoneOffset(long &raw_offset, long &dst_offset)
+void queryForTimezoneOffset()
 {
     Serial.println("Querying for timezone offset...");
     HTTPClient http;
@@ -45,12 +64,13 @@ void queryForTimezoneOffset(long &raw_offset, long &dst_offset)
         deserializeJson(doc, payload);
 
         String timezone = doc["timezone"]; // The timezone
-        raw_offset = doc["raw_offset"];    // The raw offset in seconds
-        dst_offset = doc["dst_offset"];    // The daylight savings offset in seconds
+        RAW_OFFSET = doc["raw_offset"];    // The raw offset in seconds
+        DST_OFFSET = doc["dst_offset"];    // The daylight savings offset in seconds
 
         Serial.println("Timezone: " + timezone);
-        Serial.println("Raw offset: " + String(raw_offset));
-        Serial.println("DST offset: " + String(dst_offset));
+        Serial.println("Raw offset: " + String(RAW_OFFSET));
+        Serial.println("DST offset: " + String(DST_OFFSET));
+        TIMEZONE_OFFSET_IS_SET = true;
     }
     else
     {
@@ -60,55 +80,50 @@ void queryForTimezoneOffset(long &raw_offset, long &dst_offset)
 }
 
 /**
- * Returns the positive modulo of a number
- */
-int mod(int a, int b)
-{
-    int r = a % b;
-    return r < 0 ? r + b : r;
-}
-
-/**
- * Returns the minuteOfDay argument normalized to the startTime argument being set to 0
- */
-int normalizeTimeToStartTime(int minuteOfDay, int startTime)
-{
-    return mod(minuteOfDay - startTime, MINUTES_IN_DAY);
-}
-
-/**
  * Updates the time from the internet
  */
 void updateTimeLoop()
 {
-    if (!timer.isIntervalPassed())
-    {
-        return;
-    }
-
     if (WiFi.getMode() == WIFI_AP || WiFi.status() != WL_CONNECTED)
     {
         // If in AP mode or disconnected, we can't get time from the internet
         return;
     }
 
-    long raw_offset = 0;
-    long dst_offset = 0;
-    queryForTimezoneOffset(
-        raw_offset,
-        dst_offset);
-    queryForTime(
-        raw_offset,
-        dst_offset);
+    if (refreshTimer.isIntervalPassed())
+    {
+        TIME_IS_SET = false;
+    }
+
+    if (!initializeTimer.isIntervalPassed())
+    {
+        return;
+    }
+
+    // We only need to query for the timezone offset once
+    if (!TIMEZONE_OFFSET_IS_SET)
+    {
+        queryForTimezoneOffset();
+        if (TIMEZONE_OFFSET_IS_SET)
+        {
+            queryForTime();
+
+            // Add a little time for happy path time fetch to complete
+            delay(1000);
+        }
+        return;
+    }
+
+    checkTimeIsSet();
 }
 
 /**
  * Returns the current time as a string
- * passes 0 in the ms argument of getLocalTime so it isn't blocking.
+ * passes 9 in the ms argument of getLocalTime so it isn't blocking (check out the implementation of getLocalTime)
  */
 String getLocalTimeString()
 {
     struct tm timeinfo;
-    getLocalTime(&timeinfo, 0);
+    getLocalTime(&timeinfo, 9);
     return String(asctime(&timeinfo));
 }

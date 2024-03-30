@@ -4,24 +4,23 @@ import { createPortal } from 'preact/compat';
 import { VNode } from 'preact';
 import { parseInputString, Err, ParsedRule } from './RuleParser';
 
+const RELAY_COUNT = 8 as const;
+const RELAY_LIST = new Array(RELAY_COUNT).fill(0).map((_, i) => `relay_${i}`);
+
 const PORTAL_ROOT_ID = 'portal-root';
 
-const RELAY_LABELS = {
-  relay_0: 'Outlet A',
-  relay_1: 'Outlet B',
-  relay_2: 'Outlet C',
-  relay_3: 'Outlet D',
-  relay_4: 'NC',
-  relay_5: 'Outdoor Lights',
-  relay_6: 'Sunroom Lights',
-  relay_7: 'Fan',
-};
-
 export default function App() {
+  const name = getName();
+
+  // set tab name:
+  useEffect(() => {
+    document.title = `${name}`;
+  }, [name]);
+
   return (
     <>
       <div className="app-root">
-        <h1>Sunroom 2</h1>
+        <h1>{name}</h1>
         <hr />
         <RelayControls />
         <hr />
@@ -111,15 +110,7 @@ type RelayStateValue = {
   force: RelaySubState;
   auto: RelaySubState;
 };
-type Relay =
-  | 'relay_0'
-  | 'relay_1'
-  | 'relay_2'
-  | 'relay_3'
-  | 'relay_4'
-  | 'relay_5'
-  | 'relay_6'
-  | 'relay_7';
+type Relay = `relay_${number}`;
 
 /**
  * Convert from the relay state submission value to the relay state value.
@@ -151,29 +142,18 @@ const getNextRelayState = (current: RelayStateValue): RelayStateValue => {
 const getRelaySubmissionValue = (
   current: RelayStateValue,
 ): RelaySubmissionValue =>
-  `${current.force}${current.auto}` as RelaySubmissionValue;
+  `${current.auto}${current.force}` as RelaySubmissionValue;
 
 const RelayControls = () => {
   const [relayState, setRelayState] = useState<
     Record<Relay, RelayStateValue | 'loading'>
-  >({
-    relay_0: 'loading',
-    relay_1: 'loading',
-    relay_2: 'loading',
-    relay_3: 'loading',
-    relay_4: 'loading',
-    relay_5: 'loading',
-    relay_6: 'loading',
-    relay_7: 'loading',
-    // relay_0: { force: 0, auto: 0 },
-    // relay_1: { force: 1, auto: 0 },
-    // relay_2: { force: 2, auto: 0 },
-    // relay_3: { force: 0, auto: 1 },
-    // relay_4: { force: 1, auto: 1 },
-    // relay_5: { force: 2, auto: 1 },
-    // relay_6: { force: 0, auto: 2 },
-    // relay_7: { force: 1, auto: 2 },
-  });
+  >(() =>
+    RELAY_LIST.reduce((acc, relay) => ({ ...acc, [relay]: 'loading' }), {}),
+  );
+
+  const [relayLabels, setRelayLabels] = useState<Record<Relay, string>>(
+    RELAY_LIST.reduce((acc, relay) => ({ ...acc, [relay]: '' }), {}),
+  );
 
   const [automateDialogRelay, setAutomateDialogRelay] = useState<Relay | null>(
     null,
@@ -183,14 +163,46 @@ const RelayControls = () => {
     (value) => value === 'loading',
   );
 
+  const fetchRelays = async () => {
+    const data = await fetch('/relays');
+    const json = await data.json();
+    setRelayState(getRelayStateValues(json));
+  };
+
+  useEffect(() => {
+    fetchRelays();
+  }, []);
+
   useEffect(() => {
     const load = async () => {
-      const data = await fetch('/relays');
+      const data = await fetch('/relay-labels');
       const json = await data.json();
-      setRelayState(getRelayStateValues(json));
+      setRelayLabels(json);
     };
     load();
   }, []);
+
+  const updateRelayLabel = async (label: string) => {
+    if (!automateDialogRelay) return;
+
+    const oldLabel = relayLabels[automateDialogRelay];
+    setRelayLabels({ ...relayLabels, [automateDialogRelay]: 'Updating...' });
+
+    try {
+      const formData = new FormData();
+      formData.append('i', automateDialogRelay.split('_')[1]);
+      formData.append('v', label);
+      await fetch(`/relay-label`, {
+        method: 'POST',
+        body: formData,
+      });
+      setRelayLabels({ ...relayLabels, [automateDialogRelay]: label });
+    } catch (error) {
+      console.error(error);
+      alert('Error updating relay label');
+      setRelayLabels({ ...relayLabels, [automateDialogRelay]: oldLabel });
+    }
+  };
 
   const handleSubmit = async (relay: Relay, value: RelayStateValue) => {
     const previousState = relayState[relay];
@@ -225,7 +237,7 @@ const RelayControls = () => {
       {new Array(8).fill(0).map((_, i) => {
         const relay = `relay_${i}` as Relay;
         const value = relayState[relay];
-        const label = RELAY_LABELS[relay];
+        const label = relayLabels[relay];
 
         let stateClasses = 'loading';
         if (value !== 'loading') {
@@ -248,15 +260,21 @@ const RelayControls = () => {
                 setAutomateDialogRelay(relay);
               }}
             >
-              A
+              ⛭
             </div>
             {label}
           </div>
         );
       })}
       <AutomateDialog
+        key={automateDialogRelay}
         relay={automateDialogRelay}
-        onClose={() => setAutomateDialogRelay(null)}
+        label={relayLabels[automateDialogRelay]}
+        setLabel={updateRelayLabel}
+        onClose={(refreshRelays) => {
+          setAutomateDialogRelay(null);
+          if (refreshRelays) fetchRelays();
+        }}
       />
     </Section>
   );
@@ -264,12 +282,18 @@ const RelayControls = () => {
 
 type AutomateDialogProps = {
   relay: Relay | null;
-  onClose: () => void;
+  label: string | undefined;
+  setLabel: (label: string) => void;
+  onClose: (refreshRelays: boolean) => void;
 };
 
-const AutomateDialog = ({ relay, onClose }: AutomateDialogProps) => {
-  // const [rule, setRule] = useState<Rule | null>(null);
-  const [rule, setRule] = useState<string>('');
+const AutomateDialog = ({
+  relay,
+  label,
+  setLabel,
+  onClose,
+}: AutomateDialogProps) => {
+  const [rule, setRule] = useState<string>('loading');
   const [validationResult, setValidationResult] = useState<ParsedRule | Err>(
     null,
   );
@@ -290,8 +314,6 @@ const AutomateDialog = ({ relay, onClose }: AutomateDialogProps) => {
 
   if (relay === null) return <></>;
 
-  const label = RELAY_LABELS[relay];
-
   const submit = async () => {
     if (submitDisabled) {
       return;
@@ -305,7 +327,7 @@ const AutomateDialog = ({ relay, onClose }: AutomateDialogProps) => {
         method: 'POST',
         body: formData,
       });
-      onClose();
+      onClose(true);
     } catch (error) {
       console.error(error);
       alert('Error submitting rule');
@@ -313,14 +335,24 @@ const AutomateDialog = ({ relay, onClose }: AutomateDialogProps) => {
   };
 
   return (
-    <FullScreenDialog onClose={onClose}>
+    <FullScreenDialog onClose={() => onClose(false)}>
       <div className="AutomateDialog">
-        <h3>Automate {label}</h3>
+        <h3>
+          <span
+            contentEditable
+            onBlur={(ev) => setLabel(ev.currentTarget.textContent.trim())}
+          >
+            {label}
+          </span>
+          <sup className="Pencil">✏️</sup>
+        </h3>
         <textarea
           value={rule}
+          disabled={rule === 'loading'}
           onChange={(ev) => setRule(ev.currentTarget.value)}
           style={{ width: '100%', height: '200px' }}
         ></textarea>
+
         <div className="Buttons">
           <button onClick={() => setValidationResult(parseInputString(rule))}>
             Validate
@@ -427,4 +459,20 @@ const FullScreenDialog = ({ children, onClose }: FullScreenDialogProps) => {
 const DialogPortal = ({ children }: { children: VNode<{}> }) => {
   const portalRoot = document.getElementById(PORTAL_ROOT_ID);
   return portalRoot ? createPortal(children, portalRoot) : null;
+};
+
+/**
+ * Get the domain name of the current page.
+ */
+const getName = () => {
+  // get domain name: eg. http://sunroom2.local -> sunroom2
+
+  const rawDomain = window.location.hostname.split('.')?.[0];
+
+  if (!rawDomain) {
+    return 'Unknown';
+  }
+
+  // capitalize first letter
+  return rawDomain.charAt(0)?.toUpperCase() + rawDomain.slice(1);
 };

@@ -8,19 +8,41 @@
 #include <functional>
 
 /**
+ * This file contains the logic for processing the relay rules
+ * Here are some possible rules:
+ * Temperature rules:
+ * ["IF", ["EQ", "temperature", 25], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ * ["IF", ["GT", "temperature", 25], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ * ["IF", ["AND", ["GT", "temperature", 25], ["LT", "temperature", 30]], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ *
+ * Time rules:
+ * ["IF", ["GT", "currentTime", "@12:00"], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ * ["IF", ["EQ", "currentTime", "@12:00"], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ *
+ * Light rules:
+ * ["IF", ["GT", "photoSensor", 1000], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ *
+ * Switch rules:
+ * ["IF", ["EQ", "lightSwitch", 1], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ *
+ */
+
+/**
  * Turn on or off a relay
  *
  * value = 2 means dont care
  * value = 1 means auto on
  * value = 0 means auto off
  */
-void setRelay(int index, int value)
+void setRelay(int index, float value)
 {
     RelayValue currentValue = RELAY_VALUES[index];
 
+    int intVal = static_cast<int>(value);
+
     // lowest (ones) tenths digit is the "force" value that we don't want to change, just update the auto value (tens digit)
     int onesDigit = currentValue % 10;
-    int newValue = (value * 10) + onesDigit;
+    int newValue = (intVal * 10) + onesDigit;
 
     RELAY_VALUES[index] = static_cast<RelayValue>(newValue);
 }
@@ -51,7 +73,7 @@ float getLightSwitch()
  * Actuator to setter function mapping
  */
 
-std::map<String, std::function<void(int)>> ACTUATOR_SETTER_MAP = {
+std::map<String, std::function<void(float)>> ACTUATOR_SETTER_MAP = {
     {"relay_0",
      std::bind(setRelay, 0, std::placeholders::_1)},
     {"relay_1",
@@ -86,7 +108,7 @@ std::map<String, float (*)()> FLOAT_SENSOR_MAP = {
  */
 int mintuesFromHHMM(String hhmm)
 {
-    return hhmm.substring(1, 2).toInt() * 60 + hhmm.substring(4, 5).toInt();
+    return hhmm.substring(1, 3).toInt() * 60 + hhmm.substring(4, 6).toInt();
 }
 
 /**
@@ -106,44 +128,45 @@ int getCurrentMinutes()
 /**
  * Create a rule return value
  */
-RuleReturn createRuleReturn(TypeCode type, ErrorCode errorCode, bool boolV, int intV, float floatV, int timeV, std::function<void(int)> actuatorSetter)
+RuleReturn createRuleReturn(TypeCode type, ErrorCode errorCode, float val, std::function<void(int)> actuatorSetter)
 {
-    return {type, errorCode, boolV, intV, floatV, timeV, actuatorSetter};
+    return {type, errorCode, val, actuatorSetter};
 }
 
 RuleReturn createErrorRuleReturn(ErrorCode errorCode)
 {
-    return createRuleReturn(ERROR_TYPE, errorCode, false, 0, 0.0, 0, 0);
+    return createRuleReturn(ERROR_TYPE, errorCode, 0.0, 0);
 }
 
 RuleReturn createBoolRuleReturn(bool boolV)
 {
-    return createRuleReturn(BOOL_TYPE, NO_ERROR, boolV, 0, 0.0, 0, 0);
-}
-
-RuleReturn createIntRuleReturn(int intV)
-{
-    return createRuleReturn(INT_TYPE, NO_ERROR, false, intV, 0.0, 0, 0);
+    return createRuleReturn(FLOAT_TYPE, NO_ERROR, boolV ? 1 : 0, 0);
 }
 
 RuleReturn createFloatRuleReturn(float floatV)
 {
-    return createRuleReturn(FLOAT_TYPE, NO_ERROR, false, 0, floatV, 0, 0);
+    return createRuleReturn(FLOAT_TYPE, NO_ERROR, floatV, 0);
+}
+
+RuleReturn createIntRuleReturn(int intV)
+{
+    float floatV = intV;
+    return createRuleReturn(FLOAT_TYPE, NO_ERROR, floatV, 0);
 }
 
 RuleReturn createVoidRuleReturn()
 {
-    return createRuleReturn(VOID_TYPE, NO_ERROR, false, 0, 0.0, 0, 0);
+    return createRuleReturn(VOID_TYPE, NO_ERROR, 0.0, 0);
 }
 
 RuleReturn createTimeRuleReturn(int timeV)
 {
-    return createRuleReturn(TIME_TYPE, NO_ERROR, false, 0, 0.0, timeV, 0);
+    return createIntRuleReturn(timeV);
 }
 
 RuleReturn createBoolActuatorRuleReturn(std::function<void(int)> actuatorSetter)
 {
-    return createRuleReturn(BOOL_ACTUATOR_TYPE, NO_ERROR, false, 0, 0.0, 0, actuatorSetter);
+    return createRuleReturn(BOOL_ACTUATOR_TYPE, NO_ERROR, 0.0, actuatorSetter);
 }
 
 /**
@@ -151,7 +174,7 @@ RuleReturn createBoolActuatorRuleReturn(std::function<void(int)> actuatorSetter)
  */
 RuleReturn processRelayRule(JsonVariantConst doc)
 {
-    RuleReturn voidReturn = createRuleReturn(VOID_TYPE, NO_ERROR, false, 0, 0.0, 0, 0);
+    RuleReturn voidReturn = createRuleReturn(VOID_TYPE, NO_ERROR, 0.0, 0);
 
     if (!doc.is<JsonArrayConst>())
     {
@@ -211,54 +234,88 @@ RuleReturn processRelayRule(JsonVariantConst doc)
     else if (type == "IF")
     {
         RuleReturn conditionResult = processRelayRule(array[1]);
-        if (conditionResult.type != BOOL_TYPE)
+        if (conditionResult.type == ERROR_TYPE)
+        {
+            return conditionResult;
+        }
+        if (conditionResult.type != FLOAT_TYPE)
         {
             return createErrorRuleReturn(IF_CONDITION_ERROR);
         }
-        if (conditionResult.boolV)
+        if (conditionResult.val > 0)
         {
-            processRelayRule(array[2]);
+            return processRelayRule(array[2]);
         }
         else
         {
-            processRelayRule(array[3]);
+            return processRelayRule(array[3]);
         }
-        return voidReturn;
     }
     else if (type == "SET")
     {
         RuleReturn actuatorResult = processRelayRule(array[1]);
         RuleReturn valResult = processRelayRule(array[2]);
 
+        if (actuatorResult.type == ERROR_TYPE)
+        {
+            return actuatorResult;
+        }
+        if (valResult.type == ERROR_TYPE)
+        {
+            return valResult;
+        }
+
         // Currently only support bool actuators
-        if (actuatorResult.type != BOOL_ACTUATOR_TYPE || valResult.type != BOOL_TYPE)
+        if (actuatorResult.type != BOOL_ACTUATOR_TYPE || valResult.type != FLOAT_TYPE)
         {
             return createErrorRuleReturn(BOOL_ACTUATOR_ERROR);
         }
 
-        actuatorResult.actuatorSetter(valResult.boolV ? 1 : 0);
+        actuatorResult.actuatorSetter(valResult.val);
         return voidReturn;
     }
     else if (type == "AND" || type == "OR")
     {
         RuleReturn aResult = processRelayRule(array[1]);
         RuleReturn bResult = processRelayRule(array[2]);
-        if (aResult.type != BOOL_TYPE || bResult.type != BOOL_TYPE)
+        if (aResult.type == ERROR_TYPE)
+        {
+            return aResult;
+        }
+        if (bResult.type == ERROR_TYPE)
+        {
+            return bResult;
+        }
+        if (aResult.type != FLOAT_TYPE || bResult.type != FLOAT_TYPE)
         {
             return createErrorRuleReturn(AND_OR_ERROR);
         }
-        bool result = type == "AND" ? aResult.boolV && bResult.boolV : aResult.boolV || bResult.boolV;
+        float aVal = aResult.val;
+        float bVal = bResult.val;
+
+        float aBool = aVal > 0 ? 1 : 0;
+        float bBool = bVal > 0 ? 1 : 0;
+
+        bool result = type == "AND" ? (aBool && bBool) : (aBool || bBool);
+        Serial.println("AND/OR");
+        Serial.println(aBool);
+        Serial.println(bBool);
+        Serial.println(result);
 
         return createBoolRuleReturn(result);
     }
     else if (type == "NOT")
     {
         RuleReturn aResult = processRelayRule(array[1]);
-        if (aResult.type != BOOL_TYPE)
+        if (aResult.type == ERROR_TYPE)
+        {
+            return aResult;
+        }
+        if (aResult.type != FLOAT_TYPE)
         {
             return createErrorRuleReturn(NOT_ERROR);
         }
-        return createBoolRuleReturn(!aResult.boolV);
+        return createBoolRuleReturn(aResult.val <= 0 ? true : false);
     }
     else if (
         type == "EQ" ||
@@ -270,64 +327,51 @@ RuleReturn processRelayRule(JsonVariantConst doc)
     {
         RuleReturn aResult = processRelayRule(array[1]);
         RuleReturn bResult = processRelayRule(array[2]);
-        if (aResult.type != bResult.type)
+        if (aResult.type == ERROR_TYPE)
+        {
+            return aResult;
+        }
+        if (bResult.type == ERROR_TYPE)
+        {
+            return bResult;
+        }
+        if (aResult.type != FLOAT_TYPE || bResult.type != FLOAT_TYPE)
         {
             return createErrorRuleReturn(COMPARISON_TYPE_EQUALITY_ERROR);
         }
 
         bool result = false;
-        float aCompare = 0.0;
-        float bCompare = 0.0;
-
-        if (aResult.type == INT_TYPE)
-        {
-            aCompare = aResult.intV;
-            bCompare = bResult.intV;
-        }
-        else if (aResult.type == FLOAT_TYPE)
-        {
-            aCompare = aResult.floatV;
-            bCompare = bResult.floatV;
-        }
-        else if (aResult.type == TIME_TYPE)
-        {
-            aCompare = aResult.timeV;
-            bCompare = bResult.timeV;
-        }
-        else if (aResult.type == BOOL_TYPE)
-        {
-            aCompare = aResult.boolV;
-            bCompare = bResult.boolV;
-        }
-        else
-        {
-            return createErrorRuleReturn(COMPARISON_TYPE_ERROR);
-        }
 
         if (type == "EQ")
         {
-            result = aCompare == bCompare;
+            result = aResult.val == bResult.val;
         }
         else if (type == "NE")
         {
-            result = aCompare != bCompare;
+            result = aResult.val != bResult.val;
         }
         else if (type == "GT")
         {
-            result = aCompare > bCompare;
+            result = aResult.val > bResult.val;
         }
         else if (type == "LT")
         {
-            result = aCompare < bCompare;
+            result = aResult.val < bResult.val;
         }
         else if (type == "GTE")
         {
-            result = aCompare >= bCompare;
+            result = aResult.val >= bResult.val;
         }
         else if (type == "LTE")
         {
-            result = aCompare <= bCompare;
+            result = aResult.val <= bResult.val;
         }
+
+        Serial.println("Comparison");
+        Serial.println(type);
+        Serial.println(aResult.val);
+        Serial.println(bResult.val);
+        Serial.println(result);
 
         return createBoolRuleReturn(result);
     }
@@ -340,10 +384,7 @@ void printRuleReturn(RuleReturn result)
     Serial.println("RuleReturn:");
     Serial.println("\ttype: " + String(result.type));
     Serial.println("\terrorCode: " + String(result.errorCode));
-    Serial.println("\tboolV: " + String(result.boolV));
-    Serial.println("\tintV: " + String(result.intV));
-    Serial.println("\tfloatV: " + String(result.floatV));
-    Serial.println("\ttimeV: " + String(result.timeV));
+    Serial.println("\val: " + String(result.val));
 }
 
 /**
@@ -351,6 +392,12 @@ void printRuleReturn(RuleReturn result)
  */
 void processRelayRules()
 {
+    // // setup some test values
+    // CURRENT_TEMPERATURE = 25.0;
+    // CURRENT_HUMIDITY = 50.0;
+    // LIGHT_LEVEL = 1000;
+    // IS_SWITCH_ON = 1;
+
     for (int i = 0; i < RELAY_COUNT; i++)
     {
         Serial.println("Processing relay rule:");
@@ -372,10 +419,10 @@ void processRelayRules()
 
         RuleReturn result = processRelayRule(doc);
 
-        if (result.type == BOOL_ACTUATOR_TYPE)
+        if (result.type == FLOAT_TYPE)
         {
             Serial.println("Setting actuator");
-            result.actuatorSetter(result.boolV ? 1 : 0);
+            ACTUATOR_SETTER_MAP["relay_" + String(i)](result.val);
         }
         else if (result.type != VOID_TYPE)
         {

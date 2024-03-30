@@ -54,7 +54,7 @@ void photoSensorSetup()
     // analog setup:
     adcAttachPin(PHOTO_SENSOR_PIN);
 
-    // analog read:
+    // analog read, not sure if this is necessary???
     int value = analogRead(PHOTO_SENSOR_PIN);
 }
 
@@ -102,7 +102,8 @@ void controlPeripheralsLoop()
     }
 
     Serial.println("Free heap:");
-    Serial.println(ESP.getFreeHeap());
+    FREE_HEAP = ESP.getFreeHeap();
+    Serial.println(FREE_HEAP);
     LIGHT_LEVEL = analogRead(PHOTO_SENSOR_PIN);
     processRelayRules();
 }

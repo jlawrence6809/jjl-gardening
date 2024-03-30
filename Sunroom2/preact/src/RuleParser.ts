@@ -169,42 +169,48 @@ const FUNCTION_TYPES = [
     args: 2,
     returnType: 'bool',
     validateArgs: ((a: DataType, b: DataType) =>
-      a !== 'void' && a === b) as ValidationFunc,
+      (a === 'bool' || a === 'float' || a === 'int' || a === 'time') &&
+      a === b) as ValidationFunc,
   },
   {
     name: 'NE',
     args: 2,
     returnType: 'bool',
     validateArgs: ((a: DataType, b: DataType) =>
-      a !== 'void' && a === b) as ValidationFunc,
+      (a === 'bool' || a === 'float' || a === 'int' || a === 'time') &&
+      a === b) as ValidationFunc,
   },
   {
     name: 'GT',
     args: 2,
     returnType: 'bool',
     validateArgs: ((a: DataType, b: DataType) =>
-      (a === 'float' || a === 'int') && a === b) as ValidationFunc,
+      (a === 'float' || a === 'int' || a === 'time') &&
+      a === b) as ValidationFunc,
   },
   {
     name: 'LT',
     args: 2,
     returnType: 'bool',
     validateArgs: ((a: DataType, b: DataType) =>
-      (a === 'float' || a === 'int') && a === b) as ValidationFunc,
+      (a === 'float' || a === 'int' || a === 'time') &&
+      a === b) as ValidationFunc,
   },
   {
     name: 'GTE',
     args: 2,
     returnType: 'bool',
     validateArgs: ((a: DataType, b: DataType) =>
-      (a === 'float' || a === 'int') && a === b) as ValidationFunc,
+      (a === 'float' || a === 'int' || a === 'time') &&
+      a === b) as ValidationFunc,
   },
   {
     name: 'LTE',
     args: 2,
     returnType: 'bool',
     validateArgs: ((a: DataType, b: DataType) =>
-      (a === 'float' || a === 'int') && a === b) as ValidationFunc,
+      (a === 'float' || a === 'int' || a === 'time') &&
+      a === b) as ValidationFunc,
   },
   {
     name: 'SET',

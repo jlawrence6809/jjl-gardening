@@ -5,12 +5,9 @@
 enum TypeCode
 {
     ERROR_TYPE = -1,
-    BOOL_TYPE = 0,
-    INT_TYPE = 1,
-    FLOAT_TYPE = 2,
-    VOID_TYPE = 3,
-    TIME_TYPE = 4,
-    BOOL_ACTUATOR_TYPE = 5
+    VOID_TYPE = 0,
+    FLOAT_TYPE = 1,
+    BOOL_ACTUATOR_TYPE = 2
 };
 
 enum ErrorCode
@@ -32,11 +29,8 @@ struct RuleReturn
 {
     TypeCode type;
     ErrorCode errorCode;
-    bool boolV;
-    int intV;
-    float floatV;
-    int timeV;
-    std::function<void(int)> actuatorSetter;
+    float val;
+    std::function<void(float)> actuatorSetter;
 };
 
 void processRelayRules();

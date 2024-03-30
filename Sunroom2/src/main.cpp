@@ -15,8 +15,9 @@
 
 void setup(void)
 {
+  // 10 secon delay to prevent boot loop from wrecking the flash memory
+  delay(10000);
   Serial.begin(BAUD);
-  delay(200);
   setupPreferences();
   checkDeviceIdentityOnSetup();
   wifiSetup();
@@ -33,5 +34,7 @@ void loop()
   temperatureMoistureLoop();
   // temperatureProbeLoop();
   controlPeripheralsLoop();
-  delay(10);
+  // delay(500);
+  // Serial.println("~~~ LOOP FINISHED ~~~");
+  delay(1);
 }

@@ -3,9 +3,22 @@
 
 #pragma once
 
+// Board selection, choose one
+// #define ESP32_S3
+#define ESP32_NODE_MCU
+
+#ifdef ESP32_S3
+constexpr int DS18B20_PIN = 38; // Digital pin connected to the DHT sensor
+constexpr int PHOTO_SENSOR_PIN = 37;
+constexpr int LIGHT_SWITCH_PIN = 36;
+#else
+constexpr int DS18B20_PIN = 23; // Digital pin connected to the DHT sensor
+constexpr int PHOTO_SENSOR_PIN = 36;
+constexpr int LIGHT_SWITCH_PIN = 39;
+#endif
+
 // DEFINES
 constexpr long BAUD = 115200;
-constexpr int DS18B20_PIN = 23; // Digital pin connected to the DHT sensor
 
 // constexpr int LED_PIN = 18;
 // constexpr int FAN_PIN = 16;
@@ -14,12 +27,15 @@ constexpr int DS18B20_PIN = 23; // Digital pin connected to the DHT sensor
 /**
  * SENSORS
  */
-constexpr int PHOTO_SENSOR_PIN = 36;
-constexpr int LIGHT_SWITCH_PIN = 39;
 
 // Pins to control 8 relay module
 constexpr int RELAY_COUNT = 8;
+
+#ifdef ESP32_S3
+constexpr int RELAY_PINS[RELAY_COUNT] = {4, 5, 6, 7, 16, 17, 18, 8};
+#else
 constexpr int RELAY_PINS[RELAY_COUNT] = {15, 2, 4, 16, 17, 5, 18, 19};
+#endif
 
 // Pin values
 enum RelayValue
@@ -41,6 +57,8 @@ extern RelayValue RELAY_VALUES[RELAY_COUNT];
 
 // array of rule string pointers
 extern String RELAY_RULES[RELAY_COUNT];
+
+extern String RELAY_LABELS[RELAY_COUNT];
 
 // VARIABLES
 extern const char *WIFI_NAME;
@@ -78,3 +96,4 @@ extern int TURN_LIGHTS_ON_AT_MINUTE;
 extern int TURN_LIGHTS_OFF_AT_MINUTE;
 
 extern int RESET_COUNTER;
+extern uint32_t FREE_HEAP;

@@ -168,7 +168,8 @@ void getGlobalInfo(AsyncWebServerRequest *request)
             {"ResetCounter", String(RESET_COUNTER)},
             {"InternalTemperature", String(cToF(INTERNAL_CHIP_TEMPERATURE), 2)},
             {"CurrentTime", getLocalTimeString()},
-            {"Core", String(xPortGetCoreID())}
+            {"Core", String(xPortGetCoreID())},
+            {"FreeHeap", String(FREE_HEAP)}
         })
     );
     // clang-format on
@@ -235,7 +236,40 @@ void setRule(AsyncWebServerRequest *request)
     String rules = request->getParam("v", POST_PARAM)->value();
     RELAY_RULES[relay] = rules;
     writeRelayRules();
+    processRelayRules();
     request->send(200, JSON_CONTENT_TYPE, buildJson({{"v", RELAY_RULES[relay]}}));
+}
+
+void setRelayLabel(AsyncWebServerRequest *request)
+{
+    // check for "i" and "v" parameters
+    if (!request->hasParam("i", POST_PARAM) || !request->hasParam("v", POST_PARAM))
+    {
+        request->send(404, JSON_CONTENT_TYPE, buildJson({{"Error", String("Relay or label not found")}}));
+        return;
+    }
+
+    int relay = request->getParam("i", POST_PARAM)->value().toInt();
+    if (relay < 0 || relay >= RELAY_COUNT)
+    {
+        request->send(404, JSON_CONTENT_TYPE, buildJson({{"Error", String("Relay not found")}}));
+        return;
+    }
+    String label = request->getParam("v", POST_PARAM)->value();
+    RELAY_LABELS[relay] = label;
+    writeRelayLabels();
+    request->send(200, JSON_CONTENT_TYPE, buildJson({{"v", RELAY_LABELS[relay]}}));
+}
+
+void getRelayLabels(AsyncWebServerRequest *request)
+{
+    std::map<String, String> relayMap;
+    for (int i = 0; i < RELAY_COUNT; i++)
+    {
+        relayMap["relay_" + String(i)] = RELAY_LABELS[i];
+    }
+
+    request->send(200, JSON_CONTENT_TYPE, buildJson(relayMap));
 }
 
 void onReset(AsyncWebServerRequest *request)
@@ -261,6 +295,8 @@ void serverSetup()
     server.on("/reset", HTTP_POST, onReset);
     server.on("/rule", HTTP_GET, getRule);
     server.on("/rule", HTTP_POST, setRule);
+    server.on("/relay-labels", HTTP_GET, getRelayLabels);
+    server.on("/relay-label", HTTP_POST, setRelayLabel);
     setupPreactPage();
     setupOTAUpdate();
     server.onNotFound(handleNotFound);

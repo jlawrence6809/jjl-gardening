@@ -64,6 +64,14 @@ void writeRelayRules()
     }
 }
 
+void writeRelayLabels()
+{
+    for (int i = 0; i < RELAY_COUNT; i++)
+    {
+        writePreference(("rlylbl" + String(i)).c_str(), (char *)(RELAY_LABELS[i]).c_str());
+    }
+}
+
 void setupRelay()
 {
     for (int i = 0; i < RELAY_COUNT; i++)
@@ -73,6 +81,11 @@ void setupRelay()
          * Rules are json blobs that define the conditions for a relay to be turned on or off
          */
         RELAY_RULES[i] = readPreference(("rlyrl" + String(i)).c_str(), "[\"NOP\"]");
+
+        /**
+         * Labels are the names of the relays
+         */
+        RELAY_LABELS[i] = readPreference(("rlylbl" + String(i)).c_str(), (char *)("Relay " + String(i)).c_str());
     }
 }
 void setupPreferences()

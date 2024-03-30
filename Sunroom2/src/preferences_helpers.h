@@ -5,3 +5,4 @@ void writeEnvironmentalControlValues(float temperature, float temperatureRange, 
 void setupPreferences();
 void writeRelayValues();
 void writeRelayRules();
+void writeRelayLabels();
