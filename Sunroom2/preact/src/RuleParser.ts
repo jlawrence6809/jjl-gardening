@@ -1,3 +1,4 @@
+import { RELAY_COUNT } from './index';
 const MAX_SIZE = 256;
 
 export type ParsedRule = [
@@ -87,40 +88,10 @@ const SENSOR_TYPES = [
 /**
  * Actuators available on the device.
  */
-const ACTUATOR_TYPES = [
-  {
-    name: 'relay_1',
-    dataType: 's_bool',
-  },
-  {
-    name: 'relay_2',
-    dataType: 's_bool',
-  },
-  {
-    name: 'relay_3',
-    dataType: 's_bool',
-  },
-  {
-    name: 'relay_4',
-    dataType: 's_bool',
-  },
-  {
-    name: 'relay_5',
-    dataType: 's_bool',
-  },
-  {
-    name: 'relay_6',
-    dataType: 's_bool',
-  },
-  {
-    name: 'relay_7',
-    dataType: 's_bool',
-  },
-  {
-    name: 'relay_8',
-    dataType: 's_bool',
-  },
-] as const;
+const ACTUATOR_TYPES = new Array(RELAY_COUNT).fill(0).map((_, i) => ({
+  name: `relay_${i + 1}`,
+  dataType: 's_bool',
+}));
 
 type ValidationFunc = (...args: DataType[]) => boolean;
 

@@ -89,24 +89,36 @@ float getLightSwitch()
  * Actuator to setter function mapping
  */
 
-std::map<String, std::function<void(float)>> ACTUATOR_SETTER_MAP = {
-    {"relay_0",
-     std::bind(setRelay, 0, std::placeholders::_1)},
-    {"relay_1",
-     std::bind(setRelay, 1, std::placeholders::_1)},
-    {"relay_2",
-     std::bind(setRelay, 2, std::placeholders::_1)},
-    {"relay_3",
-     std::bind(setRelay, 3, std::placeholders::_1)},
-    {"relay_4",
-     std::bind(setRelay, 4, std::placeholders::_1)},
-    {"relay_5",
-     std::bind(setRelay, 5, std::placeholders::_1)},
-    {"relay_6",
-     std::bind(setRelay, 6, std::placeholders::_1)},
-    {"relay_7",
-     std::bind(setRelay, 7, std::placeholders::_1)},
-};
+// std::map<String, std::function<void(float)>> ACTUATOR_SETTER_MAP = {
+//     {"relay_0",
+//      std::bind(setRelay, 0, std::placeholders::_1)},
+//     {"relay_1",
+//      std::bind(setRelay, 1, std::placeholders::_1)},
+//     {"relay_2",
+//      std::bind(setRelay, 2, std::placeholders::_1)},
+//     {"relay_3",
+//      std::bind(setRelay, 3, std::placeholders::_1)},
+//     {"relay_4",
+//      std::bind(setRelay, 4, std::placeholders::_1)},
+//     {"relay_5",
+//      std::bind(setRelay, 5, std::placeholders::_1)},
+//     {"relay_6",
+//      std::bind(setRelay, 6, std::placeholders::_1)},
+//     {"relay_7",
+//      std::bind(setRelay, 7, std::placeholders::_1)},
+// };
+
+std::function<void(float)> getActuatorSetter(String name)
+{
+    String relayPrefix = "relay_";
+    if (name.startsWith(relayPrefix))
+    {
+        int index = name.substring(relayPrefix.length()).toInt();
+        return std::bind(setRelay, index, std::placeholders::_1);
+    }
+
+    return 0;
+}
 
 /**
  * Sensor to getter function mapping
@@ -212,10 +224,12 @@ RuleReturn processRelayRule(JsonVariantConst doc)
             {
                 return createTimeRuleReturn(mintuesFromHHMMSS(str));
             }
+
             // check if in actuator map
-            if (ACTUATOR_SETTER_MAP.find(str) != ACTUATOR_SETTER_MAP.end())
+            std::function<void(float)> actuatorSetter = getActuatorSetter(str);
+            if (actuatorSetter != 0)
             {
-                return createBoolActuatorRuleReturn(ACTUATOR_SETTER_MAP[str]);
+                return createBoolActuatorRuleReturn(actuatorSetter);
             }
 
             // check if in sensor map
@@ -447,8 +461,8 @@ void processRelayRules()
 
         if (result.type == FLOAT_TYPE)
         {
-            Serial.println("Setting actuator");
-            ACTUATOR_SETTER_MAP["relay_" + String(i)](result.val);
+            Serial.println("Setting actuator: " + String(i) + " to: " + String(result.val));
+            getActuatorSetter("relay_" + String(i))(result.val);
         }
         else if (result.type != VOID_TYPE)
         {

@@ -4,8 +4,18 @@ import { createPortal } from 'preact/compat';
 import { VNode } from 'preact';
 import { parseInputString, Err, ParsedRule } from './RuleParser';
 
-const RELAY_COUNT = 8 as const;
-const RELAY_LIST = new Array(RELAY_COUNT).fill(0).map((_, i) => `relay_${i}`);
+/**
+ * Sunroom
+ */
+// export const RELAY_COUNT = 8 as const;
+
+/**
+ * Barn
+ */
+export const RELAY_COUNT = 13 as const;
+const RELAY_LIST = new Array(RELAY_COUNT)
+  .fill(0)
+  .map((_, i) => `relay_${i}` as Relay);
 
 const PORTAL_ROOT_ID = 'portal-root';
 
@@ -234,8 +244,7 @@ const RelayControls = () => {
       className={`RelayForm ${isLoading ? 'loading' : ''}`}
       title="Relay Controls"
     >
-      {new Array(8).fill(0).map((_, i) => {
-        const relay = `relay_${i}` as Relay;
+      {RELAY_LIST.map((relay) => {
         const value = relayState[relay];
         const label = relayLabels[relay];
 

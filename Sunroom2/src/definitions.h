@@ -7,6 +7,9 @@
 // #define ESP32_S3
 #define ESP32_NODE_MCU
 
+// #define SUNROOM
+#define BARN
+
 #ifdef ESP32_S3
 constexpr int DS18B20_PIN = 38; // Digital pin connected to the DHT sensor
 constexpr int PHOTO_SENSOR_PIN = 37;
@@ -28,13 +31,25 @@ constexpr long BAUD = 115200;
  * SENSORS
  */
 
-// Pins to control 8 relay module
-constexpr int RELAY_COUNT = 8;
-
 #ifdef ESP32_S3
+constexpr int RELAY_COUNT = 8;
 constexpr int RELAY_PINS[RELAY_COUNT] = {4, 5, 6, 7, 16, 17, 18, 8};
-#else
+// Inverted relays, such as the a/c relay (mosfet are not inverted)
+constexpr bool RELAY_IS_INVERTED[RELAY_COUNT] = {true, true, true, true, true, true, true, true};
+#endif
+
+#ifdef SUNROOM
+constexpr int RELAY_COUNT = 8;
 constexpr int RELAY_PINS[RELAY_COUNT] = {15, 2, 4, 16, 17, 5, 18, 19};
+// Inverted relays, such as the a/c relay (mosfet are not inverted)
+constexpr bool RELAY_IS_INVERTED[RELAY_COUNT] = {true, true, true, true, true, true, true, true};
+#endif
+
+#ifdef BARN
+constexpr int RELAY_COUNT = 13;
+constexpr int RELAY_PINS[RELAY_COUNT] = {15, 2, 4, 16, 17, 5, 18, 19, 32, 33, 25, 26, 27};
+// Inverted relays, such as the a/c relay (mosfet are not inverted)
+constexpr bool RELAY_IS_INVERTED[RELAY_COUNT] = {true, true, true, true, true, true, true, true, false, false, false, false, false};
 #endif
 
 // Pin values
