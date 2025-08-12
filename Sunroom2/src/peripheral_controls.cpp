@@ -6,8 +6,15 @@
 #include <ArduinoJson.h>
 #include "rule_helpers.h"
 
-static Timer timer(30000);
-int SUNROOM_LIGHTS_RELAY = 6;
+static Timer timer(1010);
+
+/**
+ * The pin corresponding to the overhead lights in the sunroom.
+ * Also the pin for the barn lights to keep the code simpler.
+ *
+ * It would be nice to make this programmable in the future.
+ */
+#define SUNROOM_LIGHTS_RELAY 6
 
 void turnOffRelay(int relay)
 {
@@ -38,11 +45,17 @@ bool isRelayOn(RelayValue value)
     return value == FORCE_ON_AUTO_X || value == FORCE_ON_AUTO_ON || value == FORCE_ON_AUTO_OFF || value == FORCE_X_AUTO_ON;
 }
 
+/**
+ * Write the relay values based on the stored variables. The rules aren't processed here.
+ */
 void relayRefresh()
 {
     for (int i = 0; i < RELAY_COUNT; i++)
     {
-        digitalWrite(RELAY_PINS[i], !isRelayOn(RELAY_VALUES[i]));
+        bool isInverted = RELAY_IS_INVERTED[i];
+        bool value = isRelayOn(RELAY_VALUES[i]);
+        bool writeValue = isInverted ? !value : value;
+        digitalWrite(RELAY_PINS[i], writeValue);
     }
 }
 
@@ -105,5 +118,7 @@ void controlPeripheralsLoop()
     FREE_HEAP = ESP.getFreeHeap();
     Serial.println(FREE_HEAP);
     LIGHT_LEVEL = analogRead(PHOTO_SENSOR_PIN);
+
+    // Process the rules
     processRelayRules();
 }
