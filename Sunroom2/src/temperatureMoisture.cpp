@@ -6,7 +6,7 @@
 
 static Adafruit_AHTX0 aht;
 
-static Timer timer(30000);
+static Timer timer(30030);
 
 bool initializeSensor()
 {

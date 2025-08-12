@@ -5,7 +5,7 @@
 #include "interval_timer.h"
 
 static OneWire ds(DS18B20_PIN);
-static Timer timer(30000);
+static Timer timer(30020);
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(DS18B20_PIN);
