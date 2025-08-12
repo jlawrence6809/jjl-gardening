@@ -16,14 +16,30 @@
  * ["IF", ["AND", ["GT", "temperature", 25], ["LT", "temperature", 30]], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
  *
  * Time rules:
- * ["IF", ["GT", "currentTime", "@12:00"], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
- * ["IF", ["EQ", "currentTime", "@12:00"], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ * ["IF", ["GT", "currentTime", "@12:00:00"], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ * ["IF", ["EQ", "currentTime", "@12:00:00"], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
  *
  * Light rules:
  * ["IF", ["GT", "photoSensor", 1000], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
  *
  * Switch rules:
  * ["IF", ["EQ", "lightSwitch", 1], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ *
+ */
+
+/**
+ * Transition function idea: "becameTime"
+ *
+ * ["IF", ["becameTime", "@12:00:00"], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ *
+ * Implementation:
+ * - store the last time the rules were processed
+ * - compare the last time to the current time
+ * - if the last time is less than the target time and the current time is greater than the target time, return true
+ *
+ * Could also implement it by allowing for a "lastCheckedTime" variable to be referenced:
+ *
+ * ["IF", ["AND", ["GT", "currentTime", "@12:00:00"], ["LT", "lastCheckedTime", "@12:00:00"]], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
  *
  */
 
@@ -104,17 +120,20 @@ std::map<String, float (*)()> FLOAT_SENSOR_MAP = {
 };
 
 /**
- * Convert @HH:MM to minutes
+ * Convert @HH:MM:SS to seconds
  */
-int mintuesFromHHMM(String hhmm)
+int mintuesFromHHMMSS(String hhmm)
 {
-    return hhmm.substring(1, 3).toInt() * 60 + hhmm.substring(4, 6).toInt();
+    int hours = hhmm.substring(1, 3).toInt();
+    int minutes = hhmm.substring(4, 6).toInt();
+    int seconds = hhmm.substring(7, 9).toInt();
+    return (hours * 60 * 60) + (minutes * 60) + seconds;
 }
 
 /**
  * Get the current time in minutes
  */
-int getCurrentMinutes()
+int getCurrentSeconds()
 {
     struct tm timeinfo;
     if (!getLocalTime(&timeinfo))
@@ -122,7 +141,10 @@ int getCurrentMinutes()
         Serial.println("Failed to obtain time");
         return -1;
     }
-    return (timeinfo.tm_hour * 60) + timeinfo.tm_min;
+    int hours = timeinfo.tm_hour;
+    int minutes = timeinfo.tm_min;
+    int seconds = timeinfo.tm_sec;
+    return (hours * 60 * 60) + (minutes * 60) + seconds;
 }
 
 /**
@@ -161,6 +183,10 @@ RuleReturn createVoidRuleReturn()
 
 RuleReturn createTimeRuleReturn(int timeV)
 {
+    if (timeV < 0)
+    {
+        return createErrorRuleReturn(TIME_ERROR);
+    }
     return createIntRuleReturn(timeV);
 }
 
@@ -184,7 +210,7 @@ RuleReturn processRelayRule(JsonVariantConst doc)
             String str = doc.as<String>();
             if (str.startsWith("@"))
             {
-                return createTimeRuleReturn(mintuesFromHHMM(str));
+                return createTimeRuleReturn(mintuesFromHHMMSS(str));
             }
             // check if in actuator map
             if (ACTUATOR_SETTER_MAP.find(str) != ACTUATOR_SETTER_MAP.end())
@@ -200,7 +226,7 @@ RuleReturn processRelayRule(JsonVariantConst doc)
 
             if (str == "currentTime")
             {
-                return createTimeRuleReturn(getCurrentMinutes());
+                return createTimeRuleReturn(getCurrentSeconds());
             }
 
             return createErrorRuleReturn(UNREC_STR_ERROR);
@@ -459,6 +485,6 @@ void processRelayRules()
 //     testRule("[\"EQ\", true, true]");
 //     testRule("[\"IF\", [\"EQ\", true, true], [\"SET\", \"relay_0\", true], [\"SET\", \"relay_0\", false]]");
 //     testRule("[\"IF\", [\"EQ\", true, false], [\"SET\", \"relay_0\", true], [\"SET\", \"relay_0\", false]]");
-//     testRule("[\"IF\", [\"EQ\", \"@12:00\", \"@12:00\"], [\"SET\", \"relay_0\", true], [\"SET\", \"relay_0\", false]]");
-//     testRule("[\"IF\", [\"GT\", \"currentTime\", \"@12:00\"], [\"SET\", \"relay_0\", true], [\"SET\", \"relay_0\", false]]");
+//     testRule("[\"IF\", [\"EQ\", \"@12:00:00\", \"@12:00:00\"], [\"SET\", \"relay_0\", true], [\"SET\", \"relay_0\", false]]");
+//     testRule("[\"IF\", [\"GT\", \"currentTime\", \"@12:00:00\"], [\"SET\", \"relay_0\", true], [\"SET\", \"relay_0\", false]]");
 // }

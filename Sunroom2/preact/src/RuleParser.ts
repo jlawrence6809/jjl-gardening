@@ -310,7 +310,7 @@ const tokenizeArguments = (node: any, path = []): TokenListTreeNode | Err => {
         if (actuator) {
           return { type: 'actuator', name: actuator.name } as ActuatorToken;
         }
-        if (arg.match(/^@\d{2}:\d{2}$/)) {
+        if (arg.match(/^@\d{2}:\d{2}:\d{2}$/)) {
           return { type: 'time', value: arg } as TimeToken;
         }
       }
@@ -453,7 +453,7 @@ const compactify = (node: TokenListTreeNode) => {
 
 // console.log(
 //   parseInputString(
-//     '["IF", ["EQ", "currentTime", "@12:30"], ["SET", "relay_1", true], ["SET", "relay_1", false]]',
+//     '["IF", ["EQ", "currentTime", "@12:30:00"], ["SET", "relay_1", true], ["SET", "relay_1", false]]',
 //   ),
 // );
 
@@ -468,35 +468,35 @@ Too large example:
 
 [
     "IF",
-    ["EQ", "currentTime", "@12:30"],
+    ["EQ", "currentTime", "@12:30:00"],
     [
         "IF",
-        ["EQ", "currentTime", "@12:30"],
+        ["EQ", "currentTime", "@12:30:00"],
         [
             "IF",
-            ["EQ", "currentTime", "@12:30"],
+            ["EQ", "currentTime", "@12:30:00"],
             ["SET", "relay_1", true],
             ["SET", "relay_1", false]
         ],
         [
             "IF",
-            ["EQ", "currentTime", "@12:30"],
+            ["EQ", "currentTime", "@12:30:00"],
             ["SET", "relay_1", true],
             ["SET", "relay_1", false]
         ]
     ],
     [
         "IF",
-        ["EQ", "currentTime", "@12:30"],
+        ["EQ", "currentTime", "@12:30:00"],
         [
             "IF",
-            ["EQ", "currentTime", "@12:30"],
+            ["EQ", "currentTime", "@12:30:00"],
             ["SET", "relay_1", true],
             ["SET", "relay_1", false]
         ],
         [
             "IF",
-            ["EQ", "currentTime", "@12:30"],
+            ["EQ", "currentTime", "@12:30:00"],
             ["SET", "relay_1", true],
             ["SET", "relay_1", false]
         ]

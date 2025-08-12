@@ -23,6 +23,7 @@ enum ErrorCode
     UNREC_FUNC_ERROR = 8,
     UNREC_STR_ERROR = 9,
     UNREC_ACTUATOR_ERROR = 10,
+    TIME_ERROR = 11,
 };
 
 struct RuleReturn
