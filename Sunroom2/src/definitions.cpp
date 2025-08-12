@@ -2,7 +2,11 @@
 #include "definitions.h"
 
 // VARIABLES
+#ifdef BARN
 const char *WIFI_NAME = "barn";
+#else
+const char *WIFI_NAME = "sunroom2";
+#endif
 
 // Note: must be longer than 8 characters
 const char *AP_PASSWORD = "esp32iscool!";
