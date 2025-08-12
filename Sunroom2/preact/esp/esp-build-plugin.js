@@ -44,7 +44,7 @@ class ESPBuildPlugin {
 
   readAndProcessAsset(path) {
     var response = '';
-    var contents = gzipSync(readFileSync(path));
+    var contents = gzipSync(new Uint8Array(readFileSync(path)));
     for (var i = 0; i < contents.length; i++) {
       if (i % 16 == 0) response += '\n';
       response += '0x' + ('00' + contents[i].toString(16)).slice(-2);
