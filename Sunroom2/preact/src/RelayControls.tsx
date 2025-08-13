@@ -9,18 +9,9 @@ import {
 } from './types';
 
 /**
- * Sunroom
+ * Rule parse needs to know the number of relays. Default to 0 until we load the relays.
  */
-export const RELAY_COUNT = 8 as const;
-
-/**
- * Barn
- */
-// export const RELAY_COUNT = 13 as const;
-
-const RELAY_LIST = new Array(RELAY_COUNT)
-  .fill(0)
-  .map((_, i) => `relay_${i}` as Relay);
+export let RELAY_COUNT = 0;
 
 /**
  * Convert from the relay state submission value to the relay state value.
@@ -56,14 +47,10 @@ const getRelaySubmissionValue = (
 
 export const RelayControls = () => {
   const [relayState, setRelayState] = useState<
-    Record<Relay, RelayStateValue | 'loading'>
-  >(() =>
-    RELAY_LIST.reduce((acc, relay) => ({ ...acc, [relay]: 'loading' }), {}),
-  );
+    Record<Relay, RelayStateValue | 'loading'> | 'loading'
+  >('loading');
 
-  const [relayLabels, setRelayLabels] = useState<Record<Relay, string>>(
-    RELAY_LIST.reduce((acc, relay) => ({ ...acc, [relay]: '' }), {}),
-  );
+  const [relayLabels, setRelayLabels] = useState<Record<Relay, string>>({});
 
   const [automateDialogRelay, setAutomateDialogRelay] = useState<Relay | null>(
     null,
@@ -76,6 +63,7 @@ export const RelayControls = () => {
   const fetchRelays = async () => {
     const data = await fetch('/relays');
     const json = await data.json();
+    RELAY_COUNT = Object.keys(json).length;
     setRelayState(getRelayStateValues(json));
   };
 
@@ -115,6 +103,7 @@ export const RelayControls = () => {
   };
 
   const handleSubmit = async (relay: Relay, value: RelayStateValue) => {
+    if (relayState === 'loading') return;
     const previousState = relayState[relay];
     if (previousState === 'loading') return;
     setRelayState({
@@ -144,37 +133,39 @@ export const RelayControls = () => {
       className={`RelayForm ${isLoading ? 'loading' : ''}`}
       title="Relay Controls"
     >
-      {RELAY_LIST.map((relay) => {
-        const value = relayState[relay];
-        const label = relayLabels[relay];
+      {relayState === 'loading' && <div>Loading...</div>}
+      {relayState !== 'loading' &&
+        Object.keys(relayState).map((relay: Relay) => {
+          const value = relayState[relay];
+          const label = relayLabels[relay];
 
-        let stateClasses = 'loading';
-        if (value !== 'loading') {
-          stateClasses = `auto_${value.auto} force_${value.force}`;
-        }
+          let stateClasses = 'loading';
+          if (value !== 'loading') {
+            stateClasses = `auto_${value.auto} force_${value.force}`;
+          }
 
-        return (
-          <div
-            key={relay}
-            className={`ToggleSwitch ${stateClasses}`}
-            onClick={() =>
-              value !== 'loading' &&
-              handleSubmit(relay, getNextRelayState(value))
-            }
-          >
+          return (
             <div
-              className={'AutomateButton'}
-              onClick={(ev) => {
-                ev.stopPropagation();
-                setAutomateDialogRelay(relay);
-              }}
+              key={relay}
+              className={`ToggleSwitch ${stateClasses}`}
+              onClick={() =>
+                value !== 'loading' &&
+                handleSubmit(relay, getNextRelayState(value))
+              }
             >
-              ⛭
+              <div
+                className={'AutomateButton'}
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  setAutomateDialogRelay(relay);
+                }}
+              >
+                ⛭
+              </div>
+              {label}
             </div>
-            {label}
-          </div>
-        );
-      })}
+          );
+        })}
       <AutomateDialog
         key={automateDialogRelay}
         relay={automateDialogRelay}
