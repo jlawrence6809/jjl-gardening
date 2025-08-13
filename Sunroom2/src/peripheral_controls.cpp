@@ -131,7 +131,7 @@ void controlPeripheralsLoop()
     Serial.println(FREE_HEAP);
     if (PHOTO_SENSOR_PIN >= 0)
     {
-    LIGHT_LEVEL = analogRead(PHOTO_SENSOR_PIN);
+        LIGHT_LEVEL = analogRead(PHOTO_SENSOR_PIN);
     }
 
     // Process the rules
