@@ -16,10 +16,12 @@ A comprehensive ESP32-based home automation system for controlling various devic
 ## Hardware Requirements
 
 ### Supported Boards
+
 - **NodeMCU-32S** (currently used for sunroom and barn)
 - **ESP32-S3 DevKit** (with external library installation)
 
 ### Sensors & Components
+
 - DS18B20 temperature sensor
 - AHTX0 temperature/humidity sensor
 - Photo sensor for light detection
@@ -50,6 +52,7 @@ Sunroom2/
 ## Setup Instructions
 
 ### Prerequisites
+
 - PlatformIO IDE or CLI
 - Node.js and npm (for web interface)
 - Arduino IDE (optional, for debugging)
@@ -57,6 +60,7 @@ Sunroom2/
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd jjl-gardening/Sunroom2
@@ -64,26 +68,29 @@ Sunroom2/
 
 2. **Configure hardware settings**
    Edit `src/definitions.h` to match your hardware setup:
+
    ```cpp
    // Choose your board
    #define ESP32_NODE_MCU  // or #define ESP32_S3
-   
+
    // Choose your environment
    #define SUNROOM         // or #define BARN
    ```
 
 3. **Install web interface dependencies**
+
    ```bash
    cd preact
    npm install
    ```
 
 4. **Build and upload**
+
    ```bash
    # Build web interface and firmware
    cd preact && npm run build
    cd .. && pio run
-   
+
    # Or use the custom build target
    pio run -t preact_build
    ```
@@ -91,21 +98,27 @@ Sunroom2/
 ### Configuration
 
 #### Board Selection
+
 In `src/definitions.h`, uncomment the appropriate board:
+
 ```cpp
 // #define ESP32_S3
 #define ESP32_NODE_MCU
 ```
 
 #### Environment Configuration
+
 Choose your deployment environment:
+
 ```cpp
 // #define SUNROOM
 #define BARN
 ```
 
 #### Relay Configuration
+
 Configure relay pins and behavior for your setup:
+
 ```cpp
 #ifdef BARN
 constexpr int RELAY_COUNT = 13;
@@ -117,6 +130,7 @@ constexpr bool RELAY_IS_INVERTED[RELAY_COUNT] = {true, true, true, true, true, t
 ## Web Interface
 
 The system includes a modern web interface built with Preact that provides:
+
 - Real-time device status monitoring
 - Manual relay control
 - Automation rule configuration
@@ -124,6 +138,7 @@ The system includes a modern web interface built with Preact that provides:
 - System status and diagnostics
 
 ### Accessing the Interface
+
 1. Connect to the device's WiFi network
 2. Navigate to the device's IP address in your browser
 3. Configure WiFi settings if needed
@@ -134,17 +149,20 @@ The system includes a modern web interface built with Preact that provides:
 The system provides REST API endpoints for integration:
 
 ### Device Control
+
 - `GET /api/relays` - Get current relay states
 - `POST /api/relays` - Set relay states
 - `GET /api/sensors` - Get sensor readings
 - `GET /api/status` - Get system status
 
 ### Configuration
+
 - `POST /api/wifi` - Update WiFi credentials
 - `POST /api/rules` - Update automation rules
 - `GET /api/config` - Get current configuration
 
 ### System
+
 - `POST /update` - OTA firmware update
 - `GET /api/restart` - Restart the device
 
@@ -159,6 +177,7 @@ The system supports custom automation rules for controlling devices based on env
 - Manual override capabilities
 
 ### Rule Examples
+
 ```
 // Turn on fan when temperature > 25°C
 if temperature > 25 then relay_0 = ON
@@ -181,12 +200,14 @@ The system supports over-the-air firmware updates:
 ## Development
 
 ### Adding New Features
+
 1. Add new functionality in the appropriate source file
 2. Update `definitions.h` if new constants are needed
 3. Add API endpoints in `servers.cpp` if needed
 4. Update the web interface in the `preact/` directory
 
 ### Debugging
+
 - Serial output is available at 115200 baud
 - Use PlatformIO's serial monitor: `pio device monitor`
 - Check the web interface's system status page
@@ -194,13 +215,55 @@ The system supports over-the-air firmware updates:
 ## Troubleshooting
 
 ### Common Issues
+
 - **WiFi Connection**: Ensure WiFi credentials are correctly configured
 - **Sensor Readings**: Check sensor connections and pin assignments
 - **Relay Control**: Verify relay pin configurations and inversion settings
 - **OTA Updates**: Ensure sufficient flash memory and stable connection
 
+### Decoding ESP32 Backtraces
+
+When the ESP32 crashes, it prints a Backtrace with program-counter addresses. You can decode these into file:line locations in two ways:
+
+1. Using PlatformIO monitor filter (recommended)
+
+```bash
+pio device monitor -e esp32-s3-devkit --filter esp32_exception_decoder --baud 115200
+```
+
+This automatically decodes addresses as they appear.
+
+2. Using addr2line manually
+
+```bash
+cd jjl-gardening/Sunroom2
+~/.platformio/packages/toolchain-xtensa-esp32s3/bin/xtensa-esp32s3-elf-addr2line -pfiaC \
+  -e .pio/build/esp32-s3-devkit/firmware.elf \
+  0x4201069a 0x4200d4d1 0x4200e395 0x4200e599 0x4201204d 0x420120c9 0x420128ae
+```
+
+Notes:
+
+- Use the toolchain matching your chip (xtensa-esp32s3 for ESP32-S3, xtensa-esp32 for classic ESP32).
+- Always point to the environment’s `firmware.elf` under `.pio/build/<env>/`.
+- Copy the hex addresses from the Backtrace line into the command.
+
+### Error Handling on ESP32 (Exceptions)
+
+The Arduino-ESP32 core typically builds without C++ exceptions to save flash/RAM. Even if enabled, exceptions add size and are uncommon in Arduino libs. Prefer defensive code patterns:
+
+- Validate pointers and indices before use
+- Return error codes/result structs instead of throwing
+- Early-`return` on invalid state
+- Add sanity checks and logs; use assertions only in debug builds
+- Keep ISR/timer callbacks minimal; avoid heap allocations there
+
+If you truly need exceptions, you can experiment with enabling them via PlatformIO `build_flags`, but it will increase binary size and is not guaranteed across all libraries.
+
 ### Debug Information
+
 The system provides debug information through:
+
 - Serial console output
 - Web interface status page
 - API endpoints for system diagnostics
