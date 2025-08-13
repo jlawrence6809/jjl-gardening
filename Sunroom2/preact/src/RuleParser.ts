@@ -1,17 +1,35 @@
-import { RELAY_COUNT } from './index';
+import { RELAY_COUNT } from './RelayControls';
+
+// Maximum allowed size in bytes for a serialized rule to prevent memory issues on embedded devices
 const MAX_SIZE = 256;
 
+/**
+ * Represents a parsed rule as a nested array structure (LISP-like syntax)
+ * First element is always a function name, followed by its arguments
+ * Arguments can be primitives or nested ParsedRule arrays
+ */
 export type ParsedRule = [
   keyof typeof FUNCTION_TYPES,
   ...(string | number | boolean | ParsedRule)[],
 ];
 
 /**
- * Lexes the input string into a nested list structure and validates the function names and number of arguments. (LISP like syntax)
+ * Main entry point for parsing rule strings into validated rule structures.
  *
- * example input: ['IF', 'b', ['EQ', 'x', 'y'], 'd']
+ * Takes a JSON string representing a LISP-like rule and:
+ * 1. Parses the JSON into a nested array structure
+ * 2. Tokenizes and validates all function names and argument types
+ * 3. Ensures the rule doesn't exceed size limits for embedded devices
+ *
+ * @param input - JSON string representation of a rule (e.g., '["IF", ["EQ", "temperature", 25], ["SET", "relay_1", true], ["NOP"]]')
+ * @returns Either a validated ParsedRule or an error object with details about what went wrong
+ *
+ * Example valid inputs:
+ * - '["SET", "relay_1", true]' - Simple relay control
+ * - '["IF", ["GT", "temperature", 30], ["SET", "relay_1", true], ["SET", "relay_1", false]]' - Conditional logic
  */
 export const parseInputString = (input: string): ParsedRule | Err => {
+  // Step 1: Parse the JSON string into a nested array structure
   let rule: ParsedRule;
   try {
     rule = JSON.parse(input);
@@ -19,17 +37,19 @@ export const parseInputString = (input: string): ParsedRule | Err => {
     return { type: 'ERROR', message: e.message, index: 0 };
   }
 
+  // Step 2: Convert raw values into typed tokens and validate structure
   const tokenTree = tokenizeArguments(rule);
   if (tokenTree.type === 'ERROR') {
     return tokenTree;
   }
 
+  // Step 3: Validate function signatures and argument types recursively
   const validation = recursivelyValidateFunctions(tokenTree);
   if (validation.type === 'ERROR') {
     return validation;
   }
 
-  //   const compacted = compactify(tokenTree);
+  // Step 4: Check size constraints for embedded device memory limits
   const compacted = JSON.stringify(rule);
   if (compacted.length > MAX_SIZE) {
     return {
@@ -38,16 +58,32 @@ export const parseInputString = (input: string): ParsedRule | Err => {
       index: 0,
     };
   }
+
   return rule;
 };
 
 /**
- * Generic error type
+ * Generic error type returned when parsing or validation fails
+ * @property type - Always 'ERROR' to distinguish from successful results
+ * @property message - Human-readable description of what went wrong
+ * @property index - Position where the error occurred (for debugging)
  */
 export type Err = { type: 'ERROR'; message: string; index: number };
 
 /**
- * Types that represent the different data types that can be used in the rule engine.
+ * Data types supported by the rule engine
+ * 
+ * Sensor types (read-only):
+ * - 'int': Integer values (temperatures, humidity percentages, etc.)
+ * - 'float': Floating-point numbers  
+ * - 'bool': Boolean true/false values
+ * - 'time': Time values in HH:MM:SS format (prefixed with @)
+ * - 'void': Functions that don't return a value (control flow)
+ * 
+ * Actuator types (settable):
+ * - 's_int': Settable integer (for numeric actuators)
+ * - 's_float': Settable float (for analog outputs)
+ * - 's_bool': Settable boolean (for relays, switches)
  */
 type DataType =
   | 'int'
@@ -60,37 +96,40 @@ type DataType =
   | 's_bool';
 
 /**
- * Sensors available on the device.
+ * Hardware sensors available on the IoT device for reading environmental data
+ * Each sensor has a name that can be referenced in rules and a data type
  */
 const SENSOR_TYPES = [
   {
     name: 'temperature',
-    dataType: 'int', // -40 - 85
+    dataType: 'int', // Temperature in Celsius, range: -40 to 85°C
   },
   {
     name: 'humidity',
-    dataType: 'int', // 0 - 100
+    dataType: 'int', // Relative humidity percentage, range: 0-100%
   },
   {
     name: 'photoSensor',
-    dataType: 'int', // 0 - 2555?
+    dataType: 'int', // Light level reading, range: 0-2555 (approximate)
   },
   {
     name: 'currentTime',
-    dataType: 'time',
+    dataType: 'time', // Current time in @HH:MM:SS format
   },
   {
     name: 'lightSwitch',
-    dataType: 'bool',
+    dataType: 'bool', // Physical light switch state (on/off)
   },
 ] as const;
 
 /**
- * Actuators available on the device.
+ * Hardware actuators (outputs) available on the device for controlling equipment
+ * Dynamically generates relay definitions based on RELAY_COUNT from RelayControls
+ * Each relay can be set to true (on) or false (off)
  */
 const ACTUATOR_TYPES = new Array(RELAY_COUNT).fill(0).map((_, i) => ({
-  name: `relay_${i + 1}`,
-  dataType: 's_bool',
+  name: `relay_${i + 1}`, // relay_1, relay_2, etc.
+  dataType: 's_bool', // Settable boolean for on/off control
 }));
 
 type ValidationFunc = (...args: DataType[]) => boolean;
