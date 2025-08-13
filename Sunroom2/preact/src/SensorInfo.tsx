@@ -8,6 +8,9 @@ type SensorInfoResponse = {
   Switch?: number;
 };
 
+/**
+ * Sensor info is the current state of the sensors on the device.
+ */
 export const SensorInfo = () => {
   const [sensorInfo, setSensorInfo] = useState<SensorInfoResponse>({});
 

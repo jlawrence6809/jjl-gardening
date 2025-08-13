@@ -2,6 +2,9 @@ import { useState } from 'preact/hooks';
 
 const RESTART_SECONDS = 5;
 
+/**
+ * Restart button is the button for restarting the device.
+ */
 export const RestartButton = () => {
   const [restartSuccess, setRestartSuccess] = useState(false);
 

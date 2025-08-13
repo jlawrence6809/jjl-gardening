@@ -11,12 +11,12 @@ import {
 /**
  * Sunroom
  */
-// export const RELAY_COUNT = 8 as const;
+export const RELAY_COUNT = 8 as const;
 
 /**
  * Barn
  */
-export const RELAY_COUNT = 13 as const;
+// export const RELAY_COUNT = 13 as const;
 
 const RELAY_LIST = new Array(RELAY_COUNT)
   .fill(0)

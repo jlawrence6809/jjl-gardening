@@ -1,5 +1,8 @@
 import { Section } from './components/Section';
 
+/**
+ * Wifi form is the form for setting the wifi name and password.
+ */
 export const WifiForm = () => {
   return (
     <Section title="Wifi Settings">
