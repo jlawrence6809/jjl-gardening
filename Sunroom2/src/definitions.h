@@ -12,8 +12,8 @@
 
 #ifdef ESP32_S3
 constexpr int DS18B20_PIN = 38; // Digital pin connected to the DHT sensor
-constexpr int PHOTO_SENSOR_PIN = 37;
-constexpr int LIGHT_SWITCH_PIN = 36;
+constexpr int PHOTO_SENSOR_PIN = -1;
+constexpr int LIGHT_SWITCH_PIN = -1;
 #else
 constexpr int DS18B20_PIN = 23; // Digital pin connected to the DHT sensor
 constexpr int PHOTO_SENSOR_PIN = 36;

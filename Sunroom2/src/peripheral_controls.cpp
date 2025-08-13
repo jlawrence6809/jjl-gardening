@@ -61,6 +61,10 @@ void relayRefresh()
 
 void photoSensorSetup()
 {
+    if (PHOTO_SENSOR_PIN < 0)
+    {
+        return;
+    }
     // analog for PHOTO_SENSOR_PIN
     pinMode(PHOTO_SENSOR_PIN, INPUT);
 
@@ -73,6 +77,10 @@ void photoSensorSetup()
 
 void lightSwitchSetup()
 {
+    if (LIGHT_SWITCH_PIN < 0)
+    {
+        return;
+    }
     pinMode(LIGHT_SWITCH_PIN, INPUT);
     IS_SWITCH_ON = digitalRead(LIGHT_SWITCH_PIN);
 }
@@ -86,6 +94,10 @@ void peripheralControlsSetup()
 
 void lightSwitchLoop()
 {
+    if (LIGHT_SWITCH_PIN < 0)
+    {
+        return;
+    }
     int switchV = digitalRead(LIGHT_SWITCH_PIN);
     if (switchV != IS_SWITCH_ON)
     {
@@ -117,7 +129,10 @@ void controlPeripheralsLoop()
     Serial.println("Free heap:");
     FREE_HEAP = ESP.getFreeHeap();
     Serial.println(FREE_HEAP);
+    if (PHOTO_SENSOR_PIN >= 0)
+    {
     LIGHT_LEVEL = analogRead(PHOTO_SENSOR_PIN);
+    }
 
     // Process the rules
     processRelayRules();
