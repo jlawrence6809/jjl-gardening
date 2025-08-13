@@ -38,7 +38,7 @@
  * - Error type identification
  */
 
-import { RELAY_COUNT } from './RelayControls';
+import { RELAY_COUNT } from './sections/RelayControls';
 
 // Maximum allowed size in bytes for a serialized rule to prevent memory issues on embedded devices
 const MAX_SIZE = 256;

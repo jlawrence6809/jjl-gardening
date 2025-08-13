@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
-import { parseInputString, Err, ParsedRule } from './RuleParser';
-import { FullScreenDialog } from './components/Dialog';
-import { Relay } from './types';
+import { parseInputString, Err, ParsedRule } from '../RuleParser';
+import { FullScreenDialog } from './Dialog';
+import { Relay } from '../types';
 
 type AutomateDialogProps = {
   relay: Relay | null;

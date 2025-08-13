@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'preact/hooks';
-import { Section } from './components/Section';
-import { AutomateDialog } from './AutomateDialog';
+import { Section } from '../components/Section';
+import { AutomateDialog } from '../components/AutomateDialog';
 import {
   Relay,
   RelayStateValue,
   RelaySubmissionValue,
   RelaySubState,
-} from './types';
+} from '../types';
 
 /**
  * Rule parse needs to know the number of relays. Default to 0 until we load the relays.

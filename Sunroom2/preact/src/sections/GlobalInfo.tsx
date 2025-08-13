@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { Section } from './components/Section';
+import { Section } from '../components/Section';
 
 type GlobalInfoResponse = {
   ChipId?: string;

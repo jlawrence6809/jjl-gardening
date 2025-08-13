@@ -1,11 +1,11 @@
 import './style';
 import { useEffect, useState } from 'preact/hooks';
-import { RelayControls } from './RelayControls';
+import { RelayControls } from './sections/RelayControls';
 import { DialogPortalRoot } from './components/Dialog';
-import { GlobalInfo } from './GlobalInfo';
-import { SensorInfo } from './SensorInfo';
-import { WifiForm } from './WifiForm';
-import { RestartButton } from './RestartButton';
+import { GlobalInfo } from './sections/GlobalInfo';
+import { SensorInfo } from './sections/SensorInfo';
+import { WifiForm } from './sections/WifiForm';
+import { RestartButton } from './sections/RestartButton';
 
 export default function App() {
   const name = getName();
