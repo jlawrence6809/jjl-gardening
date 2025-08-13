@@ -22,6 +22,6 @@ void checkDeviceIdentityOnSetup()
     }
     else
     {
-        Serial.println("DEVICE NOT RECOGNIZED: " + CHIP_ID);
+        Serial.println(String("DEVICE NOT RECOGNIZED: ") + String(CHIP_ID, HEX));
     }
 }
