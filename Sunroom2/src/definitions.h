@@ -111,4 +111,5 @@ extern int TURN_LIGHTS_ON_AT_MINUTE;
 extern int TURN_LIGHTS_OFF_AT_MINUTE;
 
 extern int RESET_COUNTER;
+extern int LAST_RESET_REASON;
 extern uint32_t FREE_HEAP;

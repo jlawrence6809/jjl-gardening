@@ -20,6 +20,7 @@ String SSID = "";
 String PASSWORD = "";
 
 int RESET_COUNTER = 0;
+int LAST_RESET_REASON = 0;
 
 float CURRENT_TEMPERATURE = -100;
 float CURRENT_HUMIDITY = -1;

@@ -166,6 +166,7 @@ void getGlobalInfo(AsyncWebServerRequest *request)
         buildJson({
             {"ChipId", String(CHIP_ID, HEX)},
             {"ResetCounter", String(RESET_COUNTER)},
+            {"LastResetReason", String(LAST_RESET_REASON)},
             {"InternalTemperature", String(cToF(INTERNAL_CHIP_TEMPERATURE), 2)},
             {"CurrentTime", getLocalTimeString()},
             {"Core", String(xPortGetCoreID())},

@@ -105,6 +105,9 @@ void setupPreferences()
     RESET_COUNTER = readPreference("resets", "0").toInt();
     writePreference("resets", (char *)String(RESET_COUNTER + 1).c_str());
 
+    // Get the last reset reason
+    LAST_RESET_REASON = (int)esp_reset_reason();
+
     // if desired temperature/humidity is not valid (bad float/0), set it to default values of 23c and 60%
     if (DESIRED_TEMPERATURE <= 0 || DESIRED_HUMIDITY <= 0)
     {
