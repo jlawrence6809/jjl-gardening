@@ -1,11 +1,16 @@
 #include <Arduino.h>
 #include "definitions.h"
 
-// VARIABLES
-#ifdef BARN
+// WIFI_NAME is the name of both the wifi name and the mdns name (eg: barn.local)
+// Note: use only lowercase letters, numbers, and hyphens
+#if defined(BARN)
 const char *WIFI_NAME = "barn";
-#else
+#elif defined(ESP32_S3)
+const char *WIFI_NAME = "esp32s3";
+#elif defined(SUNROOM)
 const char *WIFI_NAME = "sunroom2";
+#else
+const char *WIFI_NAME = "esp32jjl";
 #endif
 
 // Note: must be longer than 8 characters

@@ -3,12 +3,10 @@
 
 #pragma once
 
-// Board selection, choose one
-// #define ESP32_S3
-#define ESP32_NODE_MCU
-
+// Board selection, choose one of the three below:
+#define ESP32_S3
 // #define SUNROOM
-#define BARN
+// #define BARN
 
 #ifdef ESP32_S3
 constexpr int DS18B20_PIN = 38; // Digital pin connected to the DHT sensor
@@ -31,21 +29,17 @@ constexpr long BAUD = 115200;
  * SENSORS
  */
 
-#ifdef ESP32_S3
+#if defined(ESP32_S3)
 constexpr int RELAY_COUNT = 8;
 constexpr int RELAY_PINS[RELAY_COUNT] = {4, 5, 6, 7, 16, 17, 18, 8};
 // Inverted relays, such as the a/c relay (mosfet are not inverted)
 constexpr bool RELAY_IS_INVERTED[RELAY_COUNT] = {true, true, true, true, true, true, true, true};
-#endif
-
-#ifdef SUNROOM
+#elif defined(SUNROOM)
 constexpr int RELAY_COUNT = 8;
 constexpr int RELAY_PINS[RELAY_COUNT] = {15, 2, 4, 16, 17, 5, 18, 19};
 // Inverted relays, such as the a/c relay (mosfet are not inverted)
 constexpr bool RELAY_IS_INVERTED[RELAY_COUNT] = {true, true, true, true, true, true, true, true};
-#endif
-
-#ifdef BARN
+#elif defined(BARN)
 constexpr int RELAY_COUNT = 13;
 constexpr int RELAY_PINS[RELAY_COUNT] = {15, 2, 4, 16, 17, 5, 18, 19, 32, 33, 25, 26, 27};
 // Inverted relays, such as the a/c relay (mosfet are not inverted)
