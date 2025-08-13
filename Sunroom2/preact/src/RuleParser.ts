@@ -401,26 +401,26 @@ const recursivelyValidateFunctions = (
 /**
  * Shrink down keys and values as much as possible.
  */
-const compactify = (node: TokenListTreeNode) => {
-  return node.children.map((child) => {
-    if (child.type === 'node') {
-      return compactify(child);
-    }
-    if (child.type === 'function') {
-      return child.name;
-    }
-    if (child.type === 'sensor' || child.type === 'actuator') {
-      return child.name;
-    }
-    if (child.type === 'float') {
-      return `${child.value.toFixed()}f`;
-    }
-    if (child.type === 'bool') {
-      return child.value ? '1' : '0';
-    }
-    return child.value;
-  });
-};
+// const compactify = (node: TokenListTreeNode) => {
+//   return node.children.map((child) => {
+//     if (child.type === 'node') {
+//       return compactify(child);
+//     }
+//     if (child.type === 'function') {
+//       return child.name;
+//     }
+//     if (child.type === 'sensor' || child.type === 'actuator') {
+//       return child.name;
+//     }
+//     if (child.type === 'float') {
+//       return `${child.value.toFixed()}f`;
+//     }
+//     if (child.type === 'bool') {
+//       return child.value ? '1' : '0';
+//     }
+//     return child.value;
+//   });
+// };
 
 // console.log(
 //   parseInputString(
