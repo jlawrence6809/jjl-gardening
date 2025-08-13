@@ -1,7 +1,10 @@
 #include <Preferences.h>
 #include "definitions.h"
+#include "esp_system.h"
 
 Preferences preferences;
+
+
 
 /**
  * Writes a preference to the NVS
@@ -60,7 +63,9 @@ void writeRelayValues()
 {
     for (int i = 0; i < RELAY_COUNT; i++)
     {
-        writePreference(("rly" + String(i)).c_str(), (char *)String(RELAY_VALUES[i]).c_str());
+        char relayKey[16];
+        snprintf(relayKey, sizeof(relayKey), "rly%d", i);
+        writePreference(relayKey, (char *)String(RELAY_VALUES[i]).c_str());
     }
 }
 
@@ -68,7 +73,9 @@ void writeRelayRules()
 {
     for (int i = 0; i < RELAY_COUNT; i++)
     {
-        writePreference(("rlyrl" + String(i)).c_str(), (char *)(RELAY_RULES[i]).c_str());
+        char rulesKey[16];
+        snprintf(rulesKey, sizeof(rulesKey), "rlyrl%d", i);
+        writePreference(rulesKey, (char *)(RELAY_RULES[i]).c_str());
     }
 }
 
@@ -76,7 +83,9 @@ void writeRelayLabels()
 {
     for (int i = 0; i < RELAY_COUNT; i++)
     {
-        writePreference(("rlylbl" + String(i)).c_str(), (char *)(RELAY_LABELS[i]).c_str());
+        char labelKey[16];
+        snprintf(labelKey, sizeof(labelKey), "rlylbl%d", i);
+        writePreference(labelKey, (char *)(RELAY_LABELS[i]).c_str());
     }
 }
 
@@ -84,16 +93,26 @@ void setupRelay()
 {
     for (int i = 0; i < RELAY_COUNT; i++)
     {
-        RELAY_VALUES[i] = static_cast<RelayValue>(readPreference(("rly" + String(i)).c_str(), "0").toInt());
+        char relayKey[16];
+        char rulesKey[16];
+        char labelKey[16];
+        char defaultLabel[32];
+        
+        snprintf(relayKey, sizeof(relayKey), "rly%d", i);
+        snprintf(rulesKey, sizeof(rulesKey), "rlyrl%d", i);
+        snprintf(labelKey, sizeof(labelKey), "rlylbl%d", i);
+        snprintf(defaultLabel, sizeof(defaultLabel), "Relay %d", i);
+        
+        RELAY_VALUES[i] = static_cast<RelayValue>(readPreference(relayKey, "0").toInt());
         /**
          * Rules are json blobs that define the conditions for a relay to be turned on or off
          */
-        RELAY_RULES[i] = readPreference(("rlyrl" + String(i)).c_str(), "[\"NOP\"]");
+        RELAY_RULES[i] = readPreference(rulesKey, "[\"NOP\"]");
 
         /**
          * Labels are the names of the relays
          */
-        RELAY_LABELS[i] = readPreference(("rlylbl" + String(i)).c_str(), (char *)("Relay " + String(i)).c_str());
+        RELAY_LABELS[i] = readPreference(labelKey, defaultLabel);
     }
 }
 void setupPreferences()
