@@ -1,7 +1,7 @@
 import mime from 'mime-types';
 import ejs from 'ejs';
 import { readFileSync, writeFileSync } from 'fs';
-import { gzipSync } from 'zlib';
+import { gzipSync, brotliCompressSync, constants } from 'zlib';
 
 /**
  * ESPBuildPlugin - Custom Webpack Plugin for ESP32 Asset Embedding
@@ -23,7 +23,11 @@ class ESPBuildPlugin {
   constructor(options) {
     this.compiler = null;           // Webpack compiler instance
     this.assets = [];              // Array to store processed assets
-    this.options = options || {};  // Plugin options (e.g., exclude patterns)
+    this.options = {
+      useBrotli: false,             // Use Brotli compression instead of gzip
+      compressionLevel: 6,          // Compression level (1-11 for Brotli, 1-9 for gzip)
+      ...options
+    };
     this.pluginName = this.constructor.name;
   }
 
@@ -62,9 +66,17 @@ class ESPBuildPlugin {
   addAsset(file) {
     // Skip files that match exclusion patterns (e.g., '200.html', 'push-manifest.json')
     for (var pattern of this.options.exclude || []) {
-      if (file.match(pattern) !== null) {
-        // Asset is excluded from ESP32 embedding
-        return false;
+      // Handle both string and regex patterns
+      if (typeof pattern === 'string') {
+        if (file === pattern) {
+          // Asset is excluded from ESP32 embedding
+          return false;
+        }
+      } else if (pattern instanceof RegExp) {
+        if (pattern.test(file)) {
+          // Asset is excluded from ESP32 embedding
+          return false;
+        }
       }
     }
     
@@ -83,8 +95,10 @@ class ESPBuildPlugin {
       ...asset,                                           // contents (C byte array) and size
     });
     
+    // Calculate and log compression ratio
+    const compressionRatio = ((1 - asset.size / asset.originalSize) * 100).toFixed(1);
     this.getLogger().info(
-      `Added asset ${file} with a size of ${asset.size} bytes.`,
+      `Added asset ${file}: ${asset.originalSize}B → ${asset.size}B (${compressionRatio}% reduction, ${asset.encoding})`,
     );
   }
 
@@ -92,19 +106,36 @@ class ESPBuildPlugin {
    * Read a file, compress it, and convert to C byte array format
    * 
    * @param {string} path - Full file path to read
-   * @returns {Object} - Object with 'contents' (C byte array string) and 'size' (bytes)
+   * @returns {Object} - Object with 'contents' (C byte array string), 'size' (bytes), and 'encoding'
    * 
    * Process:
    * 1. Read file as binary data
-   * 2. Compress with gzip (reduces size significantly for text files)
+   * 2. Compress with gzip or Brotli (reduces size significantly for text files)
    * 3. Convert each byte to hexadecimal C format (0x1f, 0x8b, etc.)
    * 4. Format as multi-line C array with 16 bytes per line for readability
    */
   readAndProcessAsset(path) {
     var response = '';
     
-    // Read file and compress with gzip to minimize ESP32 flash usage
-    var contents = gzipSync(new Uint8Array(readFileSync(path)));
+    // Read file content
+    const fileData = new Uint8Array(readFileSync(path));
+    
+    // Choose compression method based on options
+    var contents, encoding;
+    if (this.options.useBrotli) {
+      // Brotli compression (better compression, ~15-20% smaller than gzip)
+      contents = brotliCompressSync(fileData, {
+        params: {
+          [constants.BROTLI_PARAM_QUALITY]: this.options.compressionLevel,
+          [constants.BROTLI_PARAM_SIZE_HINT]: fileData.length,
+        }
+      });
+      encoding = 'br';
+    } else {
+      // Standard gzip compression
+      contents = gzipSync(fileData, { level: this.options.compressionLevel });
+      encoding = 'gzip';
+    }
     
     // Convert binary data to C byte array format
     for (var i = 0; i < contents.length; i++) {
@@ -121,6 +152,8 @@ class ESPBuildPlugin {
     return {
       contents: response,    // String containing C byte array
       size: contents.length, // Size in bytes (after compression)
+      encoding: encoding,    // Compression method used
+      originalSize: fileData.length, // Original uncompressed size
     };
   }
 
