@@ -19,9 +19,17 @@ void writePreference(const char *key, char *value)
  */
 String readPreference(const char *key, const char *defaultValue)
 {
-    preferences.begin("app", false);                         // Start the NVS "my-app" namespace
-    String value = preferences.getString(key, defaultValue); // Get the string, return "default" if it doesn't exist
-    preferences.end();                                       // End the NVS session
+    preferences.begin("app", false); // Start the NVS namespace
+    String value;
+    if (preferences.isKey(key))
+    {
+        value = preferences.getString(key, defaultValue);
+    }
+    else
+    {
+        value = String(defaultValue);
+    }
+    preferences.end(); // End the NVS session
     Serial.println("read preference: " + String(key) + " = " + String(value));
     return value;
 }
