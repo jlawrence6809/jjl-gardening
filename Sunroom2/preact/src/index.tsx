@@ -29,7 +29,7 @@ export default function App() {
 
   return (
     <>
-      <div className="app-root">
+      <div className='app-root'>
         <h1>{name}</h1>
         <hr />
         <RelayControls />
@@ -68,7 +68,7 @@ const GlobalInfo = () => {
   }, []);
 
   return (
-    <Section className="GlobalInfo" title="Global Info">
+    <Section className='GlobalInfo' title='Global Info'>
       <p>Chip Id: #{globalInfo.ChipId}</p>
       <p>Resets: {globalInfo.ResetCounter}</p>
       <p>Internal temperature: {globalInfo.InternalTemperature}F</p>
@@ -97,7 +97,7 @@ const SensorInfo = () => {
   }, []);
 
   return (
-    <Section className="SensorInfo" title="Sensor Info">
+    <Section className='SensorInfo' title='Sensor Info'>
       <p>Temperature: {sensorInfo.Temperature}F</p>
       <p>Humidity: {sensorInfo.Humidity}%</p>
       <p>Light: {sensorInfo.Light}</p>
@@ -170,7 +170,7 @@ const RelayControls = () => {
   );
 
   const isLoading = Object.values(relayState).some(
-    (value) => value === 'loading',
+    value => value === 'loading',
   );
 
   const fetchRelays = async () => {
@@ -242,9 +242,9 @@ const RelayControls = () => {
   return (
     <Section
       className={`RelayForm ${isLoading ? 'loading' : ''}`}
-      title="Relay Controls"
+      title='Relay Controls'
     >
-      {RELAY_LIST.map((relay) => {
+      {RELAY_LIST.map(relay => {
         const value = relayState[relay];
         const label = relayLabels[relay];
 
@@ -264,7 +264,7 @@ const RelayControls = () => {
           >
             <div
               className={'AutomateButton'}
-              onClick={(ev) => {
+              onClick={ev => {
                 ev.stopPropagation();
                 setAutomateDialogRelay(relay);
               }}
@@ -280,7 +280,7 @@ const RelayControls = () => {
         relay={automateDialogRelay}
         label={relayLabels[automateDialogRelay]}
         setLabel={updateRelayLabel}
-        onClose={(refreshRelays) => {
+        onClose={refreshRelays => {
           setAutomateDialogRelay(null);
           if (refreshRelays) fetchRelays();
         }}
@@ -345,24 +345,24 @@ const AutomateDialog = ({
 
   return (
     <FullScreenDialog onClose={() => onClose(false)}>
-      <div className="AutomateDialog">
+      <div className='AutomateDialog'>
         <h3>
           <span
             contentEditable
-            onBlur={(ev) => setLabel(ev.currentTarget.textContent.trim())}
+            onBlur={ev => setLabel(ev.currentTarget.textContent.trim())}
           >
             {label}
           </span>
-          <sup className="Pencil">✏️</sup>
+          <sup className='Pencil'>✏️</sup>
         </h3>
         <textarea
           value={rule}
           disabled={rule === 'loading'}
-          onChange={(ev) => setRule(ev.currentTarget.value)}
+          onChange={ev => setRule(ev.currentTarget.value)}
           style={{ width: '100%', height: '200px' }}
         ></textarea>
 
-        <div className="Buttons">
+        <div className='Buttons'>
           <button onClick={() => setValidationResult(parseInputString(rule))}>
             Validate
           </button>
@@ -387,17 +387,17 @@ const AutomateDialog = ({
 
 const WifiForm = () => {
   return (
-    <Section title="Wifi Settings">
-      <form className="WifiForm" action="/wifi-settings" method="post">
+    <Section title='Wifi Settings'>
+      <form className='WifiForm' action='/wifi-settings' method='post'>
         <div>
-          <label for="ssid">Wifi Name</label>
-          <input type="text" id="ssid" name="ssid" />
+          <label for='ssid'>Wifi Name</label>
+          <input type='text' id='ssid' name='ssid' />
         </div>
         <div>
-          <label for="password">Wifi Password</label>
-          <input type="password" id="password" name="password" />
+          <label for='password'>Wifi Password</label>
+          <input type='password' id='password' name='password' />
         </div>
-        <button type="submit">Submit</button>
+        <button type='submit'>Submit</button>
       </form>
     </Section>
   );
@@ -456,8 +456,8 @@ type FullScreenDialogProps = {
 const FullScreenDialog = ({ children, onClose }: FullScreenDialogProps) => {
   return (
     <DialogPortal>
-      <div className="FullScreenDialog" onClick={onClose}>
-        <div className="inner" onClick={(e) => e.stopPropagation()}>
+      <div className='FullScreenDialog' onClick={onClose}>
+        <div className='inner' onClick={e => e.stopPropagation()}>
           {children}
         </div>
       </div>

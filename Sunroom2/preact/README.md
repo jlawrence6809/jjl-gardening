@@ -56,15 +56,18 @@ preact/
 ### Installation
 
 1. **Install dependencies**:
+
    ```bash
    cd preact
    npm install
    ```
 
 2. **Development mode**:
+
    ```bash
    npm run dev
    ```
+
    This starts a development server at `http://localhost:8080` with hot reloading.
 
 3. **Build for production**:
@@ -93,7 +96,7 @@ The interface automatically detects whether it's running on a Sunroom or Barn co
 // Sunroom configuration
 export const RELAY_COUNT = 8 as const;
 
-// Barn configuration  
+// Barn configuration
 export const RELAY_COUNT = 13 as const;
 ```
 
@@ -122,32 +125,37 @@ The root component that orchestrates the entire interface:
 ### Relay Control System
 
 **Features**:
+
 - Visual toggle switches with state indication
 - Three-state control: Off (0), On (1), Don't Care (2)
 - Automation button for rule configuration
 - Real-time status updates
 
 **State Management**:
+
 ```typescript
 type RelayStateValue = {
-  force: RelaySubState;  // Manual override (0=off, 1=on, 2=auto)
-  auto: RelaySubState;   // Automation state
+  force: RelaySubState; // Manual override (0=off, 1=on, 2=auto)
+  auto: RelaySubState; // Automation state
 };
 ```
 
 ### Automation Dialog
 
 **Features**:
+
 - Inline label editing
 - Rule syntax validation
 - Real-time parsing feedback
 - JSON-based rule storage
 
 **Rule Format**:
+
 ```json
-["IF", 
-  ["GT", "temperature", 25], 
-  ["SET", "relay_0", true], 
+[
+  "IF",
+  ["GT", "temperature", 25],
+  ["SET", "relay_0", true],
   ["SET", "relay_0", false]
 ]
 ```
@@ -159,11 +167,13 @@ type RelayStateValue = {
 The system uses a LISP-like syntax for automation rules:
 
 #### Functions
+
 - **Logic**: `IF`, `AND`, `OR`, `NOT`
 - **Comparison**: `EQ`, `NE`, `GT`, `LT`, `GTE`, `LTE`
 - **Action**: `SET`
 
 #### Data Types
+
 - **Sensors**: `temperature`, `humidity`, `photoSensor`, `lightSwitch`, `currentTime`
 - **Actuators**: `relay_1`, `relay_2`, ..., `relay_13`
 - **Values**: Numbers, booleans, time strings (`@HH:MM:SS`)
@@ -171,24 +181,31 @@ The system uses a LISP-like syntax for automation rules:
 #### Example Rules
 
 **Temperature Control**:
+
 ```json
-["IF", ["GT", "temperature", 25], 
-  ["SET", "relay_0", true], 
-  ["SET", "relay_0", false]]
+[
+  "IF",
+  ["GT", "temperature", 25],
+  ["SET", "relay_0", true],
+  ["SET", "relay_0", false]
+]
 ```
 
 **Time-based Control**:
+
 ```json
-["IF", ["EQ", "currentTime", "@18:00:00"], 
-  ["SET", "relay_1", true], 
-  ["NOP"]]
+["IF", ["EQ", "currentTime", "@18:00:00"], ["SET", "relay_1", true], ["NOP"]]
 ```
 
 **Complex Logic**:
+
 ```json
-["IF", ["AND", ["GT", "temperature", 20], ["LT", "humidity", 60]], 
-  ["SET", "relay_2", true], 
-  ["SET", "relay_2", false]]
+[
+  "IF",
+  ["AND", ["GT", "temperature", 20], ["LT", "humidity", 60]],
+  ["SET", "relay_2", true],
+  ["SET", "relay_2", false]
+]
 ```
 
 ### Rule Validation
@@ -227,7 +244,7 @@ const size_t index_html_gz_len = 1234;
 The interface communicates with ESP32 endpoints:
 
 - `GET /relays` - Relay states
-- `POST /relays` - Set relay states  
+- `POST /relays` - Set relay states
 - `GET /sensor-info` - Sensor readings
 - `GET /global-info` - System information
 - `POST /wifi-settings` - WiFi configuration
@@ -281,6 +298,7 @@ npm run build
 ```
 
 This generates:
+
 - Optimized JavaScript/CSS bundles
 - Compressed assets for ESP32
 - `static_files.h` C header file

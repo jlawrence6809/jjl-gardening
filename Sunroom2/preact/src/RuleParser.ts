@@ -269,15 +269,15 @@ const tokenizeArguments = (node: any, path = []): TokenListTreeNode | Err => {
       }
 
       if (typeof arg === 'string') {
-        const func = FUNCTION_TYPES.find((f) => f.name === arg);
+        const func = FUNCTION_TYPES.find(f => f.name === arg);
         if (func) {
           return { type: 'function', name: func.name } as FunctionToken;
         }
-        const sensor = SENSOR_TYPES.find((s) => s.name === arg);
+        const sensor = SENSOR_TYPES.find(s => s.name === arg);
         if (sensor) {
           return { type: 'sensor', name: sensor.name } as SensorToken;
         }
-        const actuator = ACTUATOR_TYPES.find((a) => a.name === arg);
+        const actuator = ACTUATOR_TYPES.find(a => a.name === arg);
         if (actuator) {
           return { type: 'actuator', name: actuator.name } as ActuatorToken;
         }
@@ -305,7 +305,7 @@ const tokenizeArguments = (node: any, path = []): TokenListTreeNode | Err => {
       } as Err;
     },
   );
-  const argError = tokenizedArgs.find((arg) => arg.type === 'ERROR');
+  const argError = tokenizedArgs.find(arg => arg.type === 'ERROR');
   if (argError?.type === 'ERROR') {
     return argError;
   }
@@ -341,7 +341,7 @@ const recursivelyValidateFunctions = (
     };
   }
 
-  const funcData = FUNCTION_TYPES.find((f) => f.name === funcName.name);
+  const funcData = FUNCTION_TYPES.find(f => f.name === funcName.name);
 
   if (args.length !== funcData.args) {
     return {
@@ -368,18 +368,18 @@ const recursivelyValidateFunctions = (
     }
 
     if (arg.type === 'sensor') {
-      return SENSOR_TYPES.find((s) => s.name === arg.name)?.dataType;
+      return SENSOR_TYPES.find(s => s.name === arg.name)?.dataType;
     }
 
     if (arg.type === 'actuator') {
-      return ACTUATOR_TYPES.find((a) => a.name === arg.name)?.dataType;
+      return ACTUATOR_TYPES.find(a => a.name === arg.name)?.dataType;
     }
 
     return arg.type;
   });
 
   const error = argTypes.find(
-    (arg) => typeof arg === 'object' && arg.type === 'ERROR',
+    arg => typeof arg === 'object' && arg.type === 'ERROR',
   ) as Err | undefined;
   if (error) {
     return error;

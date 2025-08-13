@@ -14,6 +14,7 @@ The ESP32 build system converts web assets (HTML, CSS, JavaScript) into C header
 ## Files
 
 ### `esp-build-plugin.js`
+
 Custom Webpack plugin that handles the asset embedding process. This is the main component that:
 
 1. **Intercepts Webpack Assets**: Hooks into Webpack's build process to capture generated files
@@ -22,6 +23,7 @@ Custom Webpack plugin that handles the asset embedding process. This is the main
 4. **Generates Header**: Creates a complete C header file with all assets
 
 ### `static_files_h.ejs`
+
 EJS template that generates the final C header file. This template creates:
 
 - Individual byte arrays for each asset
@@ -32,16 +34,18 @@ EJS template that generates the final C header file. This template creates:
 ## How It Works
 
 ### 1. Asset Collection
+
 When Webpack builds the web interface, the plugin intercepts each generated file:
 
 ```javascript
 // Files like: index.html, bundle.js, bundle.css, etc.
-compiler.hooks.assetEmitted.tap('ESPBuildPlugin', (file) => {
+compiler.hooks.assetEmitted.tap('ESPBuildPlugin', file => {
   this.addAsset(file);
 });
 ```
 
 ### 2. Asset Processing
+
 Each asset goes through several transformations:
 
 ```javascript
@@ -57,6 +61,7 @@ const compressed = gzipSync(fileContent);
 ```
 
 ### 3. C Header Generation
+
 The EJS template generates a header file like this:
 
 ```c
@@ -120,20 +125,22 @@ void serveFile(const String& path, AsyncWebServerRequest* request) {
 ## Configuration
 
 ### Exclusion Patterns
+
 Files can be excluded from embedding using the plugin options:
 
 ```javascript
 // In preact.config.js
 new ESPBuildPlugin({
-    exclude: [
-        '200.html',                    // SPA fallback page
-        'preact_prerender_data.json',  // Build metadata
-        'push-manifest.json',          // PWA manifest
-    ],
-})
+  exclude: [
+    '200.html', // SPA fallback page
+    'preact_prerender_data.json', // Build metadata
+    'push-manifest.json', // PWA manifest
+  ],
+});
 ```
 
 ### Memory Considerations
+
 The ESP32 has limited flash memory, so assets are optimized:
 
 - **Gzip Compression**: Typically reduces size by 70-80%
@@ -148,7 +155,7 @@ A typical build might generate something like:
 ```
 Assets processed:
 - index.html (2.1KB → 0.8KB after gzip)
-- bundle.js (45.2KB → 12.3KB after gzip)  
+- bundle.js (45.2KB → 12.3KB after gzip)
 - bundle.css (3.4KB → 1.1KB after gzip)
 
 Total embedded size: ~14.2KB
@@ -183,7 +190,7 @@ apply(compiler) {
     compiler.hooks.assetEmitted.tap('ESPBuildPlugin', (file) => {
         this.addAsset(file);
     });
-    
+
     // Hook into completion
     compiler.hooks.afterEmit.tap('ESPBuildPlugin', () => {
         this.createESPOutputFile();
@@ -194,6 +201,7 @@ apply(compiler) {
 ## Debugging
 
 ### Build Logs
+
 The plugin provides detailed logging:
 
 ```
@@ -217,11 +225,13 @@ Build artifact has been written to /path/to/build/static_files.h.
 ## Performance Considerations
 
 ### Build Time
+
 - Asset processing adds ~1-2 seconds to build time
 - Gzip compression is the most time-intensive step
 - Template rendering is typically <100ms
 
 ### Runtime Performance
+
 - **Memory Usage**: Assets consume RAM when served (temporary)
 - **Serving Speed**: Very fast (direct memory access)
 - **CPU Usage**: Minimal (no file system operations)
@@ -239,6 +249,7 @@ Potential improvements to the build system:
 ## Troubleshooting
 
 ### Build Failures
+
 If the build fails, check:
 
 1. **File Permissions**: Ensure write access to build directory
@@ -247,6 +258,7 @@ If the build fails, check:
 4. **Path Issues**: File paths must be accessible from build directory
 
 ### Runtime Issues
+
 If assets don't serve correctly:
 
 1. **Content-Encoding**: Ensure "gzip" header is set
