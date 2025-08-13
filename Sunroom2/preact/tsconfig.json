@@ -20,5 +20,16 @@
       "react": ["node_modules/preact/compat"],
       "react-dom": ["node_modules/preact/compat"]
     }
-  }
+  },
+  "exclude": [
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "jest.config.js",
+    "coverage/**",
+    "build/**",
+    "node_modules/**"
+  ]
 }
