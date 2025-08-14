@@ -440,8 +440,8 @@ void processRelayRules()
 
     for (int i = 0; i < RELAY_PINS.size(); i++)
     {
-        Serial.println("Processing relay rule:");
-        Serial.println(RELAY_RULES[i]);
+        // Serial.println("Processing relay rule:");
+        // Serial.println(RELAY_RULES[i]);
 
         // Set the relay auto digit to dont care
         setRelay(i, 2);
@@ -469,10 +469,10 @@ void processRelayRules()
             Serial.println("Unexpected rule result: ");
             printRuleReturn(result);
         }
-        else
-        {
-            Serial.println("Rule processed successfully");
-        }
+        // else
+        // {
+        //     Serial.println("Rule processed successfully");
+        // }
     }
 }
 

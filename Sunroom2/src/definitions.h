@@ -16,6 +16,9 @@ constexpr auto STRAPPING_PINS = std::array{ CFG_STRAPPING_PINS };
 constexpr auto RELAY_IS_INVERTED = std::array{ CFG_RELAY_IS_INVERTED };
 inline constexpr const char *WIFI_NAME = CFG_WIFI_NAME;
 
+// Utility: return true if pin is disabled via config (< 0)
+inline constexpr bool pinIsDisabled(int pin) { return pin < 0; }
+
 // Pin values
 enum RelayValue
 {
