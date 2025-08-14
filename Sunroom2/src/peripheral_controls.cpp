@@ -32,7 +32,7 @@ void turnOnRelay(int relay)
 
 void setupRelays()
 {
-    for (int i = 0; i < RELAY_COUNT; i++)
+    for (int i = 0; i < RELAY_PINS.size(); i++)
     {
         int pin = RELAY_PINS[i];
         pinMode(pin, OUTPUT);
@@ -50,7 +50,7 @@ bool isRelayOn(RelayValue value)
  */
 void relayRefresh()
 {
-    for (int i = 0; i < RELAY_COUNT; i++)
+    for (int i = 0; i < RELAY_PINS.size(); i++)
     {
         bool isInverted = RELAY_IS_INVERTED[i];
         bool value = isRelayOn(RELAY_VALUES[i]);
