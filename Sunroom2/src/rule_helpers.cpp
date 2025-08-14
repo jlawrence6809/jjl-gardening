@@ -438,7 +438,7 @@ void processRelayRules()
     // LIGHT_LEVEL = 1000;
     // IS_SWITCH_ON = 1;
 
-    for (int i = 0; i < RELAY_COUNT; i++)
+    for (int i = 0; i < RELAY_PINS.size(); i++)
     {
         Serial.println("Processing relay rule:");
         Serial.println(RELAY_RULES[i]);

@@ -61,7 +61,7 @@ void writeEnvironmentalControlValues(float temperature, float temperatureRange, 
 
 void writeRelayValues()
 {
-    for (int i = 0; i < RELAY_COUNT; i++)
+    for (int i = 0; i < RELAY_PINS.size(); i++)
     {
         char relayKey[16];
         snprintf(relayKey, sizeof(relayKey), "rly%d", i);
@@ -71,7 +71,7 @@ void writeRelayValues()
 
 void writeRelayRules()
 {
-    for (int i = 0; i < RELAY_COUNT; i++)
+    for (int i = 0; i < RELAY_PINS.size(); i++)
     {
         char rulesKey[16];
         snprintf(rulesKey, sizeof(rulesKey), "rlyrl%d", i);
@@ -81,7 +81,7 @@ void writeRelayRules()
 
 void writeRelayLabels()
 {
-    for (int i = 0; i < RELAY_COUNT; i++)
+    for (int i = 0; i < RELAY_PINS.size(); i++)
     {
         char labelKey[16];
         snprintf(labelKey, sizeof(labelKey), "rlylbl%d", i);
@@ -91,7 +91,7 @@ void writeRelayLabels()
 
 void setupRelay()
 {
-    for (int i = 0; i < RELAY_COUNT; i++)
+    for (int i = 0; i < RELAY_PINS.size(); i++)
     {
         char relayKey[16];
         char rulesKey[16];

@@ -38,7 +38,7 @@ float cToF(float c)
 String getRelayValues()
 {
     std::map<String, String> relayMap;
-    for (int i = 0; i < RELAY_COUNT; i++)
+    for (int i = 0; i < RELAY_PINS.size(); i++)
     {
         relayMap["relay_" + String(i)] = String(RELAY_VALUES[i]);
     }
@@ -52,7 +52,7 @@ void getRelays(AsyncWebServerRequest *request)
 
 void setRelays(AsyncWebServerRequest *request)
 {
-    for (int i = 0; i < RELAY_COUNT; i++)
+    for (int i = 0; i < RELAY_PINS.size(); i++)
     {
         String relayParam = "relay_" + String(i);
         if (request->hasParam(relayParam, POST_PARAM))
@@ -203,7 +203,7 @@ void getRule(AsyncWebServerRequest *request)
     {
         relay = request->getParam("i", GET_PARAM)->value().toInt();
     }
-    if (relay < 0 || relay >= RELAY_COUNT)
+    if (relay < 0 || relay >= RELAY_PINS.size())
     {
         request->send(404, JSON_CONTENT_TYPE, buildJson({{"Error", String("Relay not found")}}));
         return;
@@ -229,7 +229,7 @@ void setRule(AsyncWebServerRequest *request)
     }
 
     int relay = request->getParam("i", POST_PARAM)->value().toInt();
-    if (relay < 0 || relay >= RELAY_COUNT)
+    if (relay < 0 || relay >= RELAY_PINS.size())
     {
         request->send(404, JSON_CONTENT_TYPE, buildJson({{"Error", String("Relay not found")}}));
         return;
@@ -251,7 +251,7 @@ void setRelayLabel(AsyncWebServerRequest *request)
     }
 
     int relay = request->getParam("i", POST_PARAM)->value().toInt();
-    if (relay < 0 || relay >= RELAY_COUNT)
+    if (relay < 0 || relay >= RELAY_PINS.size())
     {
         request->send(404, JSON_CONTENT_TYPE, buildJson({{"Error", String("Relay not found")}}));
         return;
@@ -265,7 +265,7 @@ void setRelayLabel(AsyncWebServerRequest *request)
 void getRelayLabels(AsyncWebServerRequest *request)
 {
     std::map<String, String> relayMap;
-    for (int i = 0; i < RELAY_COUNT; i++)
+    for (int i = 0; i < RELAY_PINS.size(); i++)
     {
         relayMap["relay_" + String(i)] = RELAY_LABELS[i];
     }
