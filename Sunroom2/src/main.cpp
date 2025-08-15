@@ -1,3 +1,4 @@
+#ifndef UNIT_TEST
 #include <Arduino.h>
 #include "definitions.h"
 #include "ds18b20.h"
@@ -24,7 +25,9 @@ void setup(void)
   wifiSetup();
   // temperatureProbeSetup();
   peripheralControlsSetup();
+#ifndef UNIT_TEST
   serverSetup();
+#endif
   Serial.println("~~~ SETUP FINISHED ~~~");
 }
 
@@ -40,3 +43,4 @@ void loop()
   // Serial.println("~~~ LOOP FINISHED ~~~");
   delay(1);
 }
+#endif // UNIT_TEST

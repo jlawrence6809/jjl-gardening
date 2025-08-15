@@ -1,4 +1,3 @@
-
 This directory is intended for PlatformIO Test Runner and project tests.
 
 Unit Testing is a software testing method by which individual units of
@@ -8,4 +7,32 @@ determine whether they are fit for use. Unit testing finds problems early
 in the development cycle.
 
 More information about PlatformIO Unit Testing:
+
 - https://docs.platformio.org/en/latest/advanced/unit-testing/index.html
+
+## Running tests for Sunroom2
+
+Prerequisites:
+
+- Connect an ESP32-S3 DevKit board via USB
+- Optionally find the serial port: `pio device list`
+
+Run all tests (uploads test firmware to the board):
+
+- Auto-detect port:
+  `pio test -e esp32s3`
+- Specify port explicitly:
+  `pio test -e esp32s3 --upload-port <your-serial-port>`
+
+Run a single test suite:
+
+- `pio test -e esp32s3 -f test_pin_helpers`
+
+Compile tests without uploading:
+
+- `pio test -e esp32s3 --without-uploading`
+
+Important: tests flash a test firmware
+
+- The test runner builds and uploads a test firmware to execute the Unity tests.
+- After running tests, re-upload the normal application firmware to restore the device.
