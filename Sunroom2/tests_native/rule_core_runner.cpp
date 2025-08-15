@@ -121,6 +121,138 @@ int main()
         check(r.type == FLOAT_TYPE && std::abs(r.val - 0.0f) < 0.001f, "NOT(true) => 0.0");
     }
 
+    // Test 6: GT(25.5, 20.0) => 1.0
+    {
+        DynamicJsonDocument doc(128);
+        deserializeJson(doc, "[\"GT\", 25.5, 20.0]");
+        RuleCoreEnv env{};
+        auto r = processRuleCore(doc, env);
+        check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "GT(25.5, 20.0) => 1.0");
+    }
+
+    // Test 7: LT(15.0, 20.0) => 1.0
+    {
+        DynamicJsonDocument doc(128);
+        deserializeJson(doc, "[\"LT\", 15.0, 20.0]");
+        RuleCoreEnv env{};
+        auto r = processRuleCore(doc, env);
+        check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "LT(15.0, 20.0) => 1.0");
+    }
+
+    // Test 8: GTE(20.0, 20.0) => 1.0
+    {
+        DynamicJsonDocument doc(128);
+        deserializeJson(doc, "[\"GTE\", 20.0, 20.0]");
+        RuleCoreEnv env{};
+        auto r = processRuleCore(doc, env);
+        check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "GTE(20.0, 20.0) => 1.0");
+    }
+
+    // Test 9: LTE(19.5, 20.0) => 1.0
+    {
+        DynamicJsonDocument doc(128);
+        deserializeJson(doc, "[\"LTE\", 19.5, 20.0]");
+        RuleCoreEnv env{};
+        auto r = processRuleCore(doc, env);
+        check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "LTE(19.5, 20.0) => 1.0");
+    }
+
+    // Test 10: GT(15.0, 20.0) => 0.0 (false case)
+    {
+        DynamicJsonDocument doc(128);
+        deserializeJson(doc, "[\"GT\", 15.0, 20.0]");
+        RuleCoreEnv env{};
+        auto r = processRuleCore(doc, env);
+        check(r.type == FLOAT_TYPE && std::abs(r.val - 0.0f) < 0.001f, "GT(15.0, 20.0) => 0.0");
+    }
+
+    // Test 11: Sensor reading with GT comparison
+    {
+        DynamicJsonDocument doc(256);
+        deserializeJson(doc, "[\"GT\", \"temperature\", 22.0]");
+        RuleCoreEnv env{};
+        env.tryReadSensor = [](const std::string &name, float &out){ 
+            if (name == "temperature") { out = 25.3f; return true; } 
+            return false; 
+        };
+        auto r = processRuleCore(doc, env);
+        check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "GT(temperature=25.3, 22.0) => 1.0");
+    }
+
+    // Test 12: Time literal parsing (@HH:MM:SS format) 
+    {
+        DynamicJsonDocument doc(256);
+        deserializeJson(doc, "[\"GT\", \"currentTime\", \"@14:30:00\"]");
+        RuleCoreEnv env{};
+        env.getCurrentSeconds = [](){ return 15 * 3600 + 45 * 60; }; // 15:45:00
+        env.parseTimeLiteral = [](const std::string &timeStr){ 
+            if (timeStr == "@14:30:00") return 14 * 3600 + 30 * 60; // 14:30:00
+            return -1;
+        };
+        auto r = processRuleCore(doc, env);
+        check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "GT(currentTime=15:45, @14:30:00) => 1.0");
+    }
+
+    // Test 13: Complex nested expression: AND(GT(temp, 20), LT(humidity, 80))
+    {
+        DynamicJsonDocument doc(512);
+        deserializeJson(doc, "[\"AND\", [\"GT\", \"temperature\", 20.0], [\"LT\", \"humidity\", 80.0]]");
+        RuleCoreEnv env{};
+        env.tryReadSensor = [](const std::string &name, float &out){ 
+            if (name == "temperature") { out = 23.5f; return true; }
+            if (name == "humidity") { out = 65.2f; return true; }
+            return false; 
+        };
+        auto r = processRuleCore(doc, env);
+        check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "AND(GT(temp=23.5, 20), LT(humidity=65.2, 80)) => 1.0");
+    }
+
+    // Test 14: OR with one false condition
+    {
+        DynamicJsonDocument doc(512);
+        deserializeJson(doc, "[\"OR\", [\"GT\", \"temperature\", 30.0], [\"LT\", \"humidity\", 80.0]]");
+        RuleCoreEnv env{};
+        env.tryReadSensor = [](const std::string &name, float &out){ 
+            if (name == "temperature") { out = 23.5f; return true; }
+            if (name == "humidity") { out = 65.2f; return true; }
+            return false; 
+        };
+        auto r = processRuleCore(doc, env);
+        check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "OR(GT(temp=23.5, 30), LT(humidity=65.2, 80)) => 1.0");
+    }
+
+    // Test 15: IF-ELSE with SET operations
+    {
+        float relay_value = -1;
+        DynamicJsonDocument doc(512);
+        deserializeJson(doc, "[\"IF\", [\"GT\", \"temperature\", 25.0], [\"SET\", \"relay_0\", 1.0], [\"SET\", \"relay_0\", 0.0]]");
+        RuleCoreEnv env{};
+        env.tryReadSensor = [](const std::string &name, float &out){ 
+            if (name == "temperature") { out = 22.0f; return true; }
+            return false; 
+        };
+        env.tryGetActuator = [&](const std::string &name, std::function<void(float)> &setter){ 
+            if (name == "relay_0") { 
+                setter = [&](float v){ relay_value = v; }; 
+                return true; 
+            } 
+            return false; 
+        };
+        auto r = processRuleCore(doc, env);
+        (void)r;
+        check(std::abs(relay_value - 0.0f) < 0.001f, "IF(GT(temp=22, 25), SET(1), SET(0)) sets relay to 0");
+    }
+
+    // Test 16: Error case - unknown sensor
+    {
+        DynamicJsonDocument doc(256);
+        deserializeJson(doc, "[\"GT\", \"unknown_sensor\", 20.0]");
+        RuleCoreEnv env{};
+        env.tryReadSensor = [](const std::string &, float &){ return false; };
+        auto r = processRuleCore(doc, env);
+        check(r.type == ERROR_TYPE && r.errorCode != 0, "GT(unknown_sensor, 20) returns error");
+    }
+
     if (failures == 0)
     {
         log_success("All native rule_core checks passed.");
