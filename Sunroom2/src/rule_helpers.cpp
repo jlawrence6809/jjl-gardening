@@ -6,6 +6,7 @@
 #include <ArduinoJson.h>
 #include <map>
 #include <functional>
+#include "rule_core.h"
 
 /**
  * This file contains the logic for processing the relay rules
@@ -124,12 +125,12 @@ std::function<void(float)> getActuatorSetter(String name)
  * Sensor to getter function mapping
  * For now only float sensors are supported
  */
-std::map<String, float (*)()> FLOAT_SENSOR_MAP = {
-    {"temperature", getTemperature},
-    {"humidity", getHumidity},
-    {"photoSensor", getPhotoSensor},
-    {"lightSwitch", getLightSwitch},
-};
+// std::map<String, float (*)()> FLOAT_SENSOR_MAP = {
+//     {"temperature", getTemperature},
+//     {"humidity", getHumidity},
+//     {"photoSensor", getPhotoSensor},
+//     {"lightSwitch", getLightSwitch},
+// };
 
 /**
  * Convert @HH:MM:SS to seconds
@@ -162,262 +163,262 @@ int getCurrentSeconds()
 /**
  * Create a rule return value
  */
-RuleReturn createRuleReturn(TypeCode type, ErrorCode errorCode, float val, std::function<void(int)> actuatorSetter)
-{
-    return {type, errorCode, val, actuatorSetter};
-}
+// RuleReturn createRuleReturn(TypeCode type, ErrorCode errorCode, float val, std::function<void(int)> actuatorSetter)
+// {
+//     return {type, errorCode, val, actuatorSetter};
+// }
 
-RuleReturn createErrorRuleReturn(ErrorCode errorCode)
-{
-    return createRuleReturn(ERROR_TYPE, errorCode, 0.0, 0);
-}
+// RuleReturn createErrorRuleReturn(ErrorCode errorCode)
+// {
+//     return createRuleReturn(ERROR_TYPE, errorCode, 0.0, 0);
+// }
 
-RuleReturn createBoolRuleReturn(bool boolV)
-{
-    return createRuleReturn(FLOAT_TYPE, NO_ERROR, boolV ? 1 : 0, 0);
-}
+// RuleReturn createBoolRuleReturn(bool boolV)
+// {
+//     return createRuleReturn(FLOAT_TYPE, NO_ERROR, boolV ? 1 : 0, 0);
+// }
 
-RuleReturn createFloatRuleReturn(float floatV)
-{
-    return createRuleReturn(FLOAT_TYPE, NO_ERROR, floatV, 0);
-}
+// RuleReturn createFloatRuleReturn(float floatV)
+// {
+//     return createRuleReturn(FLOAT_TYPE, NO_ERROR, floatV, 0);
+// }
 
-RuleReturn createIntRuleReturn(int intV)
-{
-    float floatV = intV;
-    return createRuleReturn(FLOAT_TYPE, NO_ERROR, floatV, 0);
-}
+// RuleReturn createIntRuleReturn(int intV)
+// {
+//     float floatV = intV;
+//     return createRuleReturn(FLOAT_TYPE, NO_ERROR, floatV, 0);
+// }
 
-RuleReturn createVoidRuleReturn()
-{
-    return createRuleReturn(VOID_TYPE, NO_ERROR, 0.0, 0);
-}
+// RuleReturn createVoidRuleReturn()
+// {
+//     return createRuleReturn(VOID_TYPE, NO_ERROR, 0.0, 0);
+// }
 
-RuleReturn createTimeRuleReturn(int timeV)
-{
-    if (timeV < 0)
-    {
-        return createErrorRuleReturn(TIME_ERROR);
-    }
-    return createIntRuleReturn(timeV);
-}
+// RuleReturn createTimeRuleReturn(int timeV)
+// {
+//     if (timeV < 0)
+//     {
+//         return createErrorRuleReturn(TIME_ERROR);
+//     }
+//     return createIntRuleReturn(timeV);
+// }
 
-RuleReturn createBoolActuatorRuleReturn(std::function<void(int)> actuatorSetter)
-{
-    return createRuleReturn(BOOL_ACTUATOR_TYPE, NO_ERROR, 0.0, actuatorSetter);
-}
+// RuleReturn createBoolActuatorRuleReturn(std::function<void(int)> actuatorSetter)
+// {
+//     return createRuleReturn(BOOL_ACTUATOR_TYPE, NO_ERROR, 0.0, actuatorSetter);
+// }
 
 /**
  * recursive function to process the rules
  */
-RuleReturn processRelayRule(JsonVariantConst doc)
-{
-    RuleReturn voidReturn = createRuleReturn(VOID_TYPE, NO_ERROR, 0.0, 0);
+// RuleReturn processRelayRule(JsonVariantConst doc)
+// {
+//     RuleReturn voidReturn = createRuleReturn(VOID_TYPE, NO_ERROR, 0.0, 0);
 
-    if (!doc.is<JsonArrayConst>())
-    {
-        // check if it's a string
-        if (doc.is<String>())
-        {
-            String str = doc.as<String>();
-            if (str.startsWith("@"))
-            {
-                return createTimeRuleReturn(mintuesFromHHMMSS(str));
-            }
+//     if (!doc.is<JsonArrayConst>())
+//     {
+//         // check if it's a string
+//         if (doc.is<String>())
+//         {
+//             String str = doc.as<String>();
+//             if (str.startsWith("@"))
+//             {
+//                 return createTimeRuleReturn(mintuesFromHHMMSS(str));
+//             }
 
-            // check if in actuator map
-            std::function<void(float)> actuatorSetter = getActuatorSetter(str);
-            if (actuatorSetter != 0)
-            {
-                return createBoolActuatorRuleReturn(actuatorSetter);
-            }
+//             // check if in actuator map
+//             std::function<void(float)> actuatorSetter = getActuatorSetter(str);
+//             if (actuatorSetter != 0)
+//             {
+//                 return createBoolActuatorRuleReturn(actuatorSetter);
+//             }
 
-            // check if in sensor map
-            if (FLOAT_SENSOR_MAP.find(str) != FLOAT_SENSOR_MAP.end())
-            {
-                return createFloatRuleReturn(FLOAT_SENSOR_MAP[str]());
-            }
+//             // check if in sensor map
+//             if (FLOAT_SENSOR_MAP.find(str) != FLOAT_SENSOR_MAP.end())
+//             {
+//                 return createFloatRuleReturn(FLOAT_SENSOR_MAP[str]());
+//             }
 
-            if (str == "currentTime")
-            {
-                return createTimeRuleReturn(getCurrentSeconds());
-            }
+//             if (str == "currentTime")
+//             {
+//                 return createTimeRuleReturn(getCurrentSeconds());
+//             }
 
-            return createErrorRuleReturn(UNREC_STR_ERROR);
-        }
-        else if (doc.is<bool>())
-        {
-            return createBoolRuleReturn(doc.as<bool>());
-        }
-        else if (doc.is<int>())
-        {
-            return createIntRuleReturn(doc.as<int>());
-        }
-        else if (doc.is<float>())
-        {
-            return createFloatRuleReturn(doc.as<float>());
-        }
-        else
-        {
-            return createErrorRuleReturn(UNREC_TYPE_ERROR);
-        }
-    }
+//             return createErrorRuleReturn(UNREC_STR_ERROR);
+//         }
+//         else if (doc.is<bool>())
+//         {
+//             return createBoolRuleReturn(doc.as<bool>());
+//         }
+//         else if (doc.is<int>())
+//         {
+//             return createIntRuleReturn(doc.as<int>());
+//         }
+//         else if (doc.is<float>())
+//         {
+//             return createFloatRuleReturn(doc.as<float>());
+//         }
+//         else
+//         {
+//             return createErrorRuleReturn(UNREC_TYPE_ERROR);
+//         }
+//     }
 
-    // get first element from array as string:
-    JsonArrayConst array = doc.as<JsonArrayConst>();
+//     // get first element from array as string:
+//     JsonArrayConst array = doc.as<JsonArrayConst>();
 
-    String type = array[0];
-    if (type == "NOP")
-    {
-        return voidReturn;
-    }
-    else if (type == "IF")
-    {
-        RuleReturn conditionResult = processRelayRule(array[1]);
-        if (conditionResult.type == ERROR_TYPE)
-        {
-            return conditionResult;
-        }
-        if (conditionResult.type != FLOAT_TYPE)
-        {
-            return createErrorRuleReturn(IF_CONDITION_ERROR);
-        }
-        if (conditionResult.val > 0)
-        {
-            return processRelayRule(array[2]);
-        }
-        else
-        {
-            return processRelayRule(array[3]);
-        }
-    }
-    else if (type == "SET")
-    {
-        RuleReturn actuatorResult = processRelayRule(array[1]);
-        RuleReturn valResult = processRelayRule(array[2]);
+//     String type = array[0];
+//     if (type == "NOP")
+//     {
+//         return voidReturn;
+//     }
+//     else if (type == "IF")
+//     {
+//         RuleReturn conditionResult = processRelayRule(array[1]);
+//         if (conditionResult.type == ERROR_TYPE)
+//         {
+//             return conditionResult;
+//         }
+//         if (conditionResult.type != FLOAT_TYPE)
+//         {
+//             return createErrorRuleReturn(IF_CONDITION_ERROR);
+//         }
+//         if (conditionResult.val > 0)
+//         {
+//             return processRelayRule(array[2]);
+//         }
+//         else
+//         {
+//             return processRelayRule(array[3]);
+//         }
+//     }
+//     else if (type == "SET")
+//     {
+//         RuleReturn actuatorResult = processRelayRule(array[1]);
+//         RuleReturn valResult = processRelayRule(array[2]);
 
-        if (actuatorResult.type == ERROR_TYPE)
-        {
-            return actuatorResult;
-        }
-        if (valResult.type == ERROR_TYPE)
-        {
-            return valResult;
-        }
+//         if (actuatorResult.type == ERROR_TYPE)
+//         {
+//             return actuatorResult;
+//         }
+//         if (valResult.type == ERROR_TYPE)
+//         {
+//             return valResult;
+//         }
 
-        // Currently only support bool actuators
-        if (actuatorResult.type != BOOL_ACTUATOR_TYPE || valResult.type != FLOAT_TYPE)
-        {
-            return createErrorRuleReturn(BOOL_ACTUATOR_ERROR);
-        }
+//         // Currently only support bool actuators
+//         if (actuatorResult.type != BOOL_ACTUATOR_TYPE || valResult.type != FLOAT_TYPE)
+//         {
+//             return createErrorRuleReturn(BOOL_ACTUATOR_ERROR);
+//         }
 
-        actuatorResult.actuatorSetter(valResult.val);
-        return voidReturn;
-    }
-    else if (type == "AND" || type == "OR")
-    {
-        RuleReturn aResult = processRelayRule(array[1]);
-        RuleReturn bResult = processRelayRule(array[2]);
-        if (aResult.type == ERROR_TYPE)
-        {
-            return aResult;
-        }
-        if (bResult.type == ERROR_TYPE)
-        {
-            return bResult;
-        }
-        if (aResult.type != FLOAT_TYPE || bResult.type != FLOAT_TYPE)
-        {
-            return createErrorRuleReturn(AND_OR_ERROR);
-        }
-        float aVal = aResult.val;
-        float bVal = bResult.val;
+//         actuatorResult.actuatorSetter(valResult.val);
+//         return voidReturn;
+//     }
+//     else if (type == "AND" || type == "OR")
+//     {
+//         RuleReturn aResult = processRelayRule(array[1]);
+//         RuleReturn bResult = processRelayRule(array[2]);
+//         if (aResult.type == ERROR_TYPE)
+//         {
+//             return aResult;
+//         }
+//         if (bResult.type == ERROR_TYPE)
+//         {
+//             return bResult;
+//         }
+//         if (aResult.type != FLOAT_TYPE || bResult.type != FLOAT_TYPE)
+//         {
+//             return createErrorRuleReturn(AND_OR_ERROR);
+//         }
+//         float aVal = aResult.val;
+//         float bVal = bResult.val;
 
-        float aBool = aVal > 0 ? 1 : 0;
-        float bBool = bVal > 0 ? 1 : 0;
+//         float aBool = aVal > 0 ? 1 : 0;
+//         float bBool = bVal > 0 ? 1 : 0;
 
-        bool result = type == "AND" ? (aBool && bBool) : (aBool || bBool);
-        Serial.println("AND/OR");
-        Serial.println(aBool);
-        Serial.println(bBool);
-        Serial.println(result);
+//         bool result = type == "AND" ? (aBool && bBool) : (aBool || bBool);
+//         Serial.println("AND/OR");
+//         Serial.println(aBool);
+//         Serial.println(bBool);
+//         Serial.println(result);
 
-        return createBoolRuleReturn(result);
-    }
-    else if (type == "NOT")
-    {
-        RuleReturn aResult = processRelayRule(array[1]);
-        if (aResult.type == ERROR_TYPE)
-        {
-            return aResult;
-        }
-        if (aResult.type != FLOAT_TYPE)
-        {
-            return createErrorRuleReturn(NOT_ERROR);
-        }
-        return createBoolRuleReturn(aResult.val <= 0 ? true : false);
-    }
-    else if (
-        type == "EQ" ||
-        type == "NE" ||
-        type == "GT" ||
-        type == "LT" ||
-        type == "GTE" ||
-        type == "LTE")
-    {
-        RuleReturn aResult = processRelayRule(array[1]);
-        RuleReturn bResult = processRelayRule(array[2]);
-        if (aResult.type == ERROR_TYPE)
-        {
-            return aResult;
-        }
-        if (bResult.type == ERROR_TYPE)
-        {
-            return bResult;
-        }
-        if (aResult.type != FLOAT_TYPE || bResult.type != FLOAT_TYPE)
-        {
-            return createErrorRuleReturn(COMPARISON_TYPE_EQUALITY_ERROR);
-        }
+//         return createBoolRuleReturn(result);
+//     }
+//     else if (type == "NOT")
+//     {
+//         RuleReturn aResult = processRelayRule(array[1]);
+//         if (aResult.type == ERROR_TYPE)
+//         {
+//             return aResult;
+//         }
+//         if (aResult.type != FLOAT_TYPE)
+//         {
+//             return createErrorRuleReturn(NOT_ERROR);
+//         }
+//         return createBoolRuleReturn(aResult.val <= 0 ? true : false);
+//     }
+//     else if (
+//         type == "EQ" ||
+//         type == "NE" ||
+//         type == "GT" ||
+//         type == "LT" ||
+//         type == "GTE" ||
+//         type == "LTE")
+//     {
+//         RuleReturn aResult = processRelayRule(array[1]);
+//         RuleReturn bResult = processRelayRule(array[2]);
+//         if (aResult.type == ERROR_TYPE)
+//         {
+//             return aResult;
+//         }
+//         if (bResult.type == ERROR_TYPE)
+//         {
+//             return bResult;
+//         }
+//         if (aResult.type != FLOAT_TYPE || bResult.type != FLOAT_TYPE)
+//         {
+//             return createErrorRuleReturn(COMPARISON_TYPE_EQUALITY_ERROR);
+//         }
 
-        bool result = false;
+//         bool result = false;
 
-        if (type == "EQ")
-        {
-            result = aResult.val == bResult.val;
-        }
-        else if (type == "NE")
-        {
-            result = aResult.val != bResult.val;
-        }
-        else if (type == "GT")
-        {
-            result = aResult.val > bResult.val;
-        }
-        else if (type == "LT")
-        {
-            result = aResult.val < bResult.val;
-        }
-        else if (type == "GTE")
-        {
-            result = aResult.val >= bResult.val;
-        }
-        else if (type == "LTE")
-        {
-            result = aResult.val <= bResult.val;
-        }
+//         if (type == "EQ")
+//         {
+//             result = aResult.val == bResult.val;
+//         }
+//         else if (type == "NE")
+//         {
+//             result = aResult.val != bResult.val;
+//         }
+//         else if (type == "GT")
+//         {
+//             result = aResult.val > bResult.val;
+//         }
+//         else if (type == "LT")
+//         {
+//             result = aResult.val < bResult.val;
+//         }
+//         else if (type == "GTE")
+//         {
+//             result = aResult.val >= bResult.val;
+//         }
+//         else if (type == "LTE")
+//         {
+//             result = aResult.val <= bResult.val;
+//         }
 
-        Serial.println("Comparison");
-        Serial.println(type);
-        Serial.println(aResult.val);
-        Serial.println(bResult.val);
-        Serial.println(result);
+//         Serial.println("Comparison");
+//         Serial.println(type);
+//         Serial.println(aResult.val);
+//         Serial.println(bResult.val);
+//         Serial.println(result);
 
-        return createBoolRuleReturn(result);
-    }
+//         return createBoolRuleReturn(result);
+//     }
 
-    return createErrorRuleReturn(UNREC_FUNC_ERROR);
-}
+//     return createErrorRuleReturn(UNREC_FUNC_ERROR);
+// }
 
 void printRuleReturn(RuleReturn result)
 {
@@ -457,7 +458,28 @@ void processRelayRules()
             continue;
         }
 
-        RuleReturn result = processRelayRule(doc);
+        // Bridge to reusable, platform-neutral core evaluator
+        RuleCoreEnv env{};
+        env.tryReadSensor = [](const std::string &name, float &out) {
+            if (name == "temperature") { out = getTemperature(); return true; }
+            if (name == "humidity") { out = getHumidity(); return true; }
+            if (name == "photoSensor") { out = getPhotoSensor(); return true; }
+            if (name == "lightSwitch") { out = getLightSwitch(); return true; }
+            return false;
+        };
+        env.tryGetActuator = [](const std::string &name, std::function<void(float)> &setter) {
+            String relayPrefix = "relay_";
+            if (name.rfind(relayPrefix.c_str(), 0) == 0) {
+                int index = atoi(name.c_str() + relayPrefix.length());
+                setter = std::bind(setRelay, index, std::placeholders::_1);
+                return true;
+            }
+            return false;
+        };
+        env.getCurrentSeconds = [](){ return getCurrentSeconds(); };
+        env.parseTimeLiteral = [](const std::string &hhmm){ return mintuesFromHHMMSS(String(hhmm.c_str())); };
+
+        RuleReturn result = processRuleCore(doc, env);
 
         if (result.type == FLOAT_TYPE)
         {
