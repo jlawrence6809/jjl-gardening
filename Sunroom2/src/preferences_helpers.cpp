@@ -59,9 +59,50 @@ void writeEnvironmentalControlValues(float temperature, float temperatureRange, 
     writePreference("tloffam", (char *)String(turnLightsOffAtMinute).c_str());
 }
 
+static void loadRelayConfig()
+{
+    // Load runtime relay configuration: count, pins, inversion.
+    // Defaults to 0 relays if not set.
+    String countStr = readPreference("rc", "-1");
+    int count = countStr.toInt();
+    if (count < 0)
+    {
+        RUNTIME_RELAY_COUNT = 0;
+        return;
+    }
+    if (count > MAX_RELAYS)
+    {
+        count = MAX_RELAYS;
+    }
+    RUNTIME_RELAY_COUNT = count;
+    for (int i = 0; i < RUNTIME_RELAY_COUNT; i++)
+    {
+        char pinKey[16];
+        char invKey[16];
+        snprintf(pinKey, sizeof(pinKey), "rpin%d", i);
+        snprintf(invKey, sizeof(invKey), "rinv%d", i);
+        RUNTIME_RELAY_PINS[i] = readPreference(pinKey, "-1").toInt();
+        RUNTIME_RELAY_IS_INVERTED[i] = readPreference(invKey, "0").toInt() == 1;
+    }
+}
+
+void writeRelayConfig()
+{
+    writePreference("rc", (char *)String(RUNTIME_RELAY_COUNT).c_str());
+    for (int i = 0; i < RUNTIME_RELAY_COUNT; i++)
+    {
+        char pinKey[16];
+        char invKey[16];
+        snprintf(pinKey, sizeof(pinKey), "rpin%d", i);
+        snprintf(invKey, sizeof(invKey), "rinv%d", i);
+        writePreference(pinKey, (char *)String(RUNTIME_RELAY_PINS[i]).c_str());
+        writePreference(invKey, (char *)String(RUNTIME_RELAY_IS_INVERTED[i] ? 1 : 0).c_str());
+    }
+}
+
 void writeRelayValues()
 {
-    for (int i = 0; i < RELAY_PINS.size(); i++)
+    for (int i = 0; i < RUNTIME_RELAY_COUNT; i++)
     {
         char relayKey[16];
         snprintf(relayKey, sizeof(relayKey), "rly%d", i);
@@ -71,7 +112,7 @@ void writeRelayValues()
 
 void writeRelayRules()
 {
-    for (int i = 0; i < RELAY_PINS.size(); i++)
+    for (int i = 0; i < RUNTIME_RELAY_COUNT; i++)
     {
         char rulesKey[16];
         snprintf(rulesKey, sizeof(rulesKey), "rlyrl%d", i);
@@ -81,7 +122,7 @@ void writeRelayRules()
 
 void writeRelayLabels()
 {
-    for (int i = 0; i < RELAY_PINS.size(); i++)
+    for (int i = 0; i < RUNTIME_RELAY_COUNT; i++)
     {
         char labelKey[16];
         snprintf(labelKey, sizeof(labelKey), "rlylbl%d", i);
@@ -91,7 +132,7 @@ void writeRelayLabels()
 
 void setupRelay()
 {
-    for (int i = 0; i < RELAY_PINS.size(); i++)
+    for (int i = 0; i < RUNTIME_RELAY_COUNT; i++)
     {
         char relayKey[16];
         char rulesKey[16];
@@ -117,6 +158,7 @@ void setupRelay()
 }
 void setupPreferences()
 {
+    loadRelayConfig();
     SSID = readPreference("ssid", "");
     PASSWORD = readPreference("pass", "");
     DESIRED_TEMPERATURE = readPreference("dt", "0").toFloat();

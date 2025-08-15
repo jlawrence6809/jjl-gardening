@@ -35,61 +35,13 @@ int IS_SWITCH_ON = 0;
 
 uint32_t FREE_HEAP = 0;
 
-RelayValue RELAY_VALUES[RELAY_PINS.size()] = {FORCE_OFF_AUTO_X};
-String RELAY_RULES[RELAY_PINS.size()] = {};
-String RELAY_LABELS[RELAY_PINS.size()] = {};
+// Runtime relay configuration (defaults to 0 active relays)
+int RUNTIME_RELAY_COUNT = 0;
+int RUNTIME_RELAY_PINS[MAX_RELAYS] = {0};
+bool RUNTIME_RELAY_IS_INVERTED[MAX_RELAYS] = {false};
+
+RelayValue RELAY_VALUES[MAX_RELAYS] = {FORCE_OFF_AUTO_X};
+String RELAY_RULES[MAX_RELAYS] = {};
+String RELAY_LABELS[MAX_RELAYS] = {};
 
 // --- Board-specific GPIO capability helpers ---
-static bool isClassicEsp32FlashPin(int pin) { return pin >= 6 && pin <= 11; }
-static bool isClassicEsp32InputOnly(int pin) { return pin >= 34 && pin <= 39; }
-
-const char *getBoardPinProfileName()
-{
-#if defined(PIN_PROFILE_ESP32_S3_DEVKIT)
-    return "ESP32-S3-DEVKIT";
-#elif defined(PIN_PROFILE_NODEMCU32S)
-    return "NODEMCU-32S";
-#else
-#ifdef ESP32_S3
-    return "ESP32-S3 (generic)";
-#else
-    return "ESP32 (classic)";
-#endif
-#endif
-}
-
-bool boardPinIsStrappingPin(int pin)
-{
-#if defined(PIN_PROFILE_ESP32_S3_DEVKIT)
-    // S3 common strapping pins: 0, 3, 45, 46
-    return pin == 0 || pin == 3 || pin == 45 || pin == 46;
-#else
-    // Classic ESP32: 0, 2, 4, 5, 12, 15
-    return pin == 0 || pin == 2 || pin == 4 || pin == 5 || pin == 12 || pin == 15;
-#endif
-}
-
-bool boardPinIsOutputAllowed(int pin)
-{
-#if defined(PIN_PROFILE_ESP32_S3_DEVKIT)
-    // Disallow USB, JTAG, and any reserved per S3 docs: 19,20 (USB), 43,44 (UART), also keep 45/46 cautious
-    if (pin == 19 || pin == 20 || pin == 43 || pin == 44) return false;
-    // Many S3 pins are valid outputs; rely on IDF macro if present
-    return GPIO_IS_VALID_OUTPUT_GPIO((gpio_num_t)pin);
-#else
-    if (isClassicEsp32FlashPin(pin) || isClassicEsp32InputOnly(pin)) return false;
-    return GPIO_IS_VALID_OUTPUT_GPIO((gpio_num_t)pin);
-#endif
-}
-
-bool boardPinIsInputAllowed(int pin)
-{
-#if defined(PIN_PROFILE_ESP32_S3_DEVKIT)
-    // Disallow USB lines as inputs for app logic
-    if (pin == 19 || pin == 20) return false;
-    return GPIO_IS_VALID_GPIO((gpio_num_t)pin);
-#else
-    if (isClassicEsp32FlashPin(pin)) return false;
-    return GPIO_IS_VALID_GPIO((gpio_num_t)pin);
-#endif
-}

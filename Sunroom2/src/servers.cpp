@@ -1,5 +1,5 @@
+#ifndef UNIT_TEST
 #include <Arduino.h>
-#include <WebServer.h>
 #include <Update.h>
 #include "definitions.h"
 #include "analog_helpers.h"
@@ -15,6 +15,11 @@
 #include "rule_helpers.h"
 #include "system_info.h"
 #include "units.h"
+#include "peripheral_controls.h"
+#include "pin_helpers.h"
+#include <set>
+#include <vector>
+#include <algorithm>
 
 bool POST_PARAM = true;
 bool GET_PARAM = false;
@@ -30,7 +35,7 @@ String HTML_CONTENT_TYPE = "text/html";
 String getRelayValues()
 {
     std::map<String, String> relayMap;
-    for (int i = 0; i < RELAY_PINS.size(); i++)
+    for (int i = 0; i < RUNTIME_RELAY_COUNT; i++)
     {
         relayMap["relay_" + String(i)] = String(RELAY_VALUES[i]);
     }
@@ -44,7 +49,7 @@ void getRelays(AsyncWebServerRequest *request)
 
 void setRelays(AsyncWebServerRequest *request)
 {
-    for (int i = 0; i < RELAY_PINS.size(); i++)
+    for (int i = 0; i < RUNTIME_RELAY_COUNT; i++)
     {
         String relayParam = "relay_" + String(i);
         if (request->hasParam(relayParam, POST_PARAM))
@@ -183,7 +188,7 @@ void getRule(AsyncWebServerRequest *request)
     {
         relay = request->getParam("i", GET_PARAM)->value().toInt();
     }
-    if (relay < 0 || relay >= RELAY_PINS.size())
+    if (relay < 0 || relay >= RUNTIME_RELAY_COUNT)
     {
         request->send(404, JSON_CONTENT_TYPE, buildJson({{"Error", String("Relay not found")}}));
         return;
@@ -209,7 +214,7 @@ void setRule(AsyncWebServerRequest *request)
     }
 
     int relay = request->getParam("i", POST_PARAM)->value().toInt();
-    if (relay < 0 || relay >= RELAY_PINS.size())
+    if (relay < 0 || relay >= RUNTIME_RELAY_COUNT)
     {
         request->send(404, JSON_CONTENT_TYPE, buildJson({{"Error", String("Relay not found")}}));
         return;
@@ -231,7 +236,7 @@ void setRelayLabel(AsyncWebServerRequest *request)
     }
 
     int relay = request->getParam("i", POST_PARAM)->value().toInt();
-    if (relay < 0 || relay >= RELAY_PINS.size())
+    if (relay < 0 || relay >= RUNTIME_RELAY_COUNT)
     {
         request->send(404, JSON_CONTENT_TYPE, buildJson({{"Error", String("Relay not found")}}));
         return;
@@ -245,12 +250,103 @@ void setRelayLabel(AsyncWebServerRequest *request)
 void getRelayLabels(AsyncWebServerRequest *request)
 {
     std::map<String, String> relayMap;
-    for (int i = 0; i < RELAY_PINS.size(); i++)
+    for (int i = 0; i < RUNTIME_RELAY_COUNT; i++)
     {
         relayMap["relay_" + String(i)] = RELAY_LABELS[i];
     }
 
     request->send(200, JSON_CONTENT_TYPE, buildJson(relayMap));
+}
+
+// List available GPIO options (valid and not reserved and not already used)
+void getGpioOptions(AsyncWebServerRequest *request)
+{
+    std::set<int> used;
+    for (int i = 0; i < RUNTIME_RELAY_COUNT; i++) used.insert(RUNTIME_RELAY_PINS[i]);
+    std::map<String, String> opts;
+    for (int pin : VALID_GPIO_PINS)
+    {
+        if (used.count(pin)) continue;
+        opts[String(pin)] = String(pin);
+    }
+    request->send(200, JSON_CONTENT_TYPE, buildJson(opts));
+}
+
+// Get current relay config (pins and inversion)
+void getRelayConfig(AsyncWebServerRequest *request)
+{
+    DynamicJsonDocument doc(1024);
+    doc["count"] = RUNTIME_RELAY_COUNT;
+    JsonArray pins = doc.createNestedArray("pins");
+    JsonArray inv = doc.createNestedArray("inverted");
+    for (int i = 0; i < RUNTIME_RELAY_COUNT; i++) { pins.add(RUNTIME_RELAY_PINS[i]); inv.add(RUNTIME_RELAY_IS_INVERTED[i]); }
+    String out; serializeJson(doc, out);
+    request->send(200, JSON_CONTENT_TYPE, out);
+}
+
+// Add a relay: expects form fields pin=<int>&inv=<0|1>
+void addRelay(AsyncWebServerRequest *request)
+{
+    if (!request->hasParam("pin", POST_PARAM))
+    {
+        request->send(400, JSON_CONTENT_TYPE, buildJson({{"Error", String("pin required")}}));
+        return;
+    }
+    int pin = request->getParam("pin", POST_PARAM)->value().toInt();
+    bool inv = request->hasParam("inv", POST_PARAM) ? (request->getParam("inv", POST_PARAM)->value().toInt() == 1) : true;
+    if (RUNTIME_RELAY_COUNT >= MAX_RELAYS)
+    {
+        request->send(400, JSON_CONTENT_TYPE, buildJson({{"Error", String("max relays reached")}}));
+        return;
+    }
+    if (std::find(VALID_GPIO_PINS.begin(), VALID_GPIO_PINS.end(), pin) == VALID_GPIO_PINS.end())
+    {
+        request->send(400, JSON_CONTENT_TYPE, buildJson({{"Error", String("invalid pin")}}));
+        return;
+    }
+    for (int i = 0; i < RUNTIME_RELAY_COUNT; i++) { if (RUNTIME_RELAY_PINS[i] == pin) { request->send(400, JSON_CONTENT_TYPE, buildJson({{"Error", String("pin already used")}})); return; } }
+
+    int idx = RUNTIME_RELAY_COUNT;
+    RUNTIME_RELAY_PINS[idx] = pin;
+    RUNTIME_RELAY_IS_INVERTED[idx] = inv;
+    RELAY_VALUES[idx] = FORCE_OFF_AUTO_X;
+    RELAY_RULES[idx] = "[\"NOP\"]";
+    RELAY_LABELS[idx] = String("Relay ") + String(idx);
+    RUNTIME_RELAY_COUNT++;
+    writeRelayConfig();
+    writeRelayValues();
+    writeRelayRules();
+    writeRelayLabels();
+    setupRelays();
+    getRelayConfig(request);
+}
+
+// Remove last relay (or by index if provided: i=<int>)
+void removeRelay(AsyncWebServerRequest *request)
+{
+    int idx = RUNTIME_RELAY_COUNT - 1;
+    if (request->hasParam("i", POST_PARAM)) idx = request->getParam("i", POST_PARAM)->value().toInt();
+    if (idx < 0 || idx >= RUNTIME_RELAY_COUNT)
+    {
+        request->send(400, JSON_CONTENT_TYPE, buildJson({{"Error", String("invalid index")}}));
+        return;
+    }
+    // shift left from idx
+    for (int i = idx; i < RUNTIME_RELAY_COUNT - 1; i++)
+    {
+        RUNTIME_RELAY_PINS[i] = RUNTIME_RELAY_PINS[i+1];
+        RUNTIME_RELAY_IS_INVERTED[i] = RUNTIME_RELAY_IS_INVERTED[i+1];
+        RELAY_VALUES[i] = RELAY_VALUES[i+1];
+        RELAY_RULES[i] = RELAY_RULES[i+1];
+        RELAY_LABELS[i] = RELAY_LABELS[i+1];
+    }
+    RUNTIME_RELAY_COUNT--;
+    writeRelayConfig();
+    writeRelayValues();
+    writeRelayRules();
+    writeRelayLabels();
+    setupRelays();
+    getRelayConfig(request);
 }
 
 void onReset(AsyncWebServerRequest *request)
@@ -278,9 +374,16 @@ void serverSetup()
     server.on("/rule", HTTP_POST, setRule);
     server.on("/relay-labels", HTTP_GET, getRelayLabels);
     server.on("/relay-label", HTTP_POST, setRelayLabel);
+    server.on("/gpio-options", HTTP_GET, getGpioOptions);
+    server.on("/relay-config", HTTP_GET, getRelayConfig);
+    server.on("/relay-config/add", HTTP_POST, addRelay);
+    server.on("/relay-config/remove", HTTP_POST, removeRelay);
+    
     setupPreactPage();
     setupOTAUpdate();
     server.onNotFound(handleNotFound);
 
     server.begin();
 }
+
+#endif // UNIT_TEST

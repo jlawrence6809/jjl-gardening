@@ -16,6 +16,28 @@ constexpr auto RELAY_PINS = std::array{ CFG_RELAY_PINS };
 constexpr auto RELAY_IS_INVERTED = std::array{ CFG_RELAY_IS_INVERTED };
 inline constexpr const char *WIFI_NAME = CFG_WIFI_NAME;
 
+// Valid and reserved pins for the currently selected board profile
+// These may be provided by the env_*.h headers for each board. Fallback to empty lists.
+#ifdef CFG_VALID_GPIO_PINS
+constexpr auto VALID_GPIO_PINS = std::array{ CFG_VALID_GPIO_PINS };
+#else
+constexpr std::array<int, 0> VALID_GPIO_PINS = {};
+#endif
+
+#ifdef CFG_RESERVED_PINS
+constexpr auto RESERVED_PINS = std::array{ CFG_RESERVED_PINS };
+#else
+constexpr std::array<int, 0> RESERVED_PINS = {};
+#endif
+
+// Dynamic relay configuration
+// We allow a runtime-configurable set of relays (starting from 0), up to
+// the compile-time maximum capacity defined by RELAY_PINS.size().
+constexpr int MAX_RELAYS = static_cast<int>(RELAY_PINS.size());
+extern int RUNTIME_RELAY_COUNT; // number of active relays at runtime
+extern int RUNTIME_RELAY_PINS[MAX_RELAYS];
+extern bool RUNTIME_RELAY_IS_INVERTED[MAX_RELAYS];
+
 // Utility: return true if pin is disabled via config (< 0)
 inline constexpr bool pinIsDisabled(int pin) { return pin < 0; }
 
@@ -35,12 +57,12 @@ enum RelayValue
      */
     FORCE_X_AUTO_X = 22,
 };
-extern RelayValue RELAY_VALUES[RELAY_PINS.size()];
+extern RelayValue RELAY_VALUES[MAX_RELAYS];
 
 // array of rule string pointers
-extern String RELAY_RULES[RELAY_PINS.size()];
+extern String RELAY_RULES[MAX_RELAYS];
 
-extern String RELAY_LABELS[RELAY_PINS.size()];
+extern String RELAY_LABELS[MAX_RELAYS];
 
 // VARIABLES
 // Note: must be longer than 8 characters
@@ -82,11 +104,3 @@ extern int LAST_RESET_REASON;
 extern uint32_t FREE_HEAP;
 
 // --- Board-specific GPIO capability helpers ---
-// The PlatformIO env can set one of these defines:
-//   PIN_PROFILE_NODEMCU32S, PIN_PROFILE_ESP32_S3_DEVKIT
-// If none is set, we use conservative defaults per SoC.
-
-const char *getBoardPinProfileName();
-bool boardPinIsStrappingPin(int pin);
-bool boardPinIsOutputAllowed(int pin);
-bool boardPinIsInputAllowed(int pin);

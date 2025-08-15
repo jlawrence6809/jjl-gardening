@@ -3,6 +3,7 @@
 #include <DallasTemperature.h>
 #include "definitions.h"
 #include "interval_timer.h"
+#include "pin_helpers.h"
 
 static Timer timer(30020);
 

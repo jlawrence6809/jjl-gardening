@@ -51,6 +51,12 @@ export const RelayControls = () => {
   >('loading');
 
   const [relayLabels, setRelayLabels] = useState<Record<Relay, string>>({});
+  const [gpioOptions, setGpioOptions] = useState<number[] | 'loading'>(
+    'loading',
+  );
+  const [adding, setAdding] = useState(false);
+  const [newPin, setNewPin] = useState<number | null>(null);
+  const [newInverted, setNewInverted] = useState(true);
 
   const [automateDialogRelay, setAutomateDialogRelay] = useState<Relay | null>(
     null,
@@ -78,6 +84,17 @@ export const RelayControls = () => {
       setRelayLabels(json);
     };
     load();
+  }, []);
+
+  const refreshGpioOptions = async () => {
+    setGpioOptions('loading');
+    const data = await fetch('/gpio-options');
+    const json = await data.json();
+    const options = Object.keys(json).map((k) => parseInt(k, 10));
+    setGpioOptions(options);
+  };
+  useEffect(() => {
+    refreshGpioOptions();
   }, []);
 
   const updateRelayLabel = async (label: string) => {
@@ -128,12 +145,31 @@ export const RelayControls = () => {
     }
   };
 
+  const addRelay = async () => {
+    if (newPin == null) return;
+    setAdding(true);
+    try {
+      const form = new FormData();
+      form.append('pin', String(newPin));
+      form.append('inv', newInverted ? '1' : '0');
+      await fetch('/relay-config/add', { method: 'POST', body: form });
+      await fetchRelays();
+      await refreshGpioOptions();
+      setNewPin(null);
+    } finally {
+      setAdding(false);
+    }
+  };
+
   return (
     <Section
       className={`RelayForm ${isLoading ? 'loading' : ''}`}
       title="Relay Controls"
     >
       {relayState === 'loading' && <div>Loading...</div>}
+      {relayState !== 'loading' && Object.keys(relayState).length === 0 && (
+        <div style={{ padding: '0.5rem 0' }}>No relays configured.</div>
+      )}
       {relayState !== 'loading' &&
         Object.keys(relayState).map((relay: Relay) => {
           const value = relayState[relay];
@@ -166,6 +202,42 @@ export const RelayControls = () => {
             </div>
           );
         })}
+      <div style={{ marginTop: '1rem' }}>
+        <h4>Add Relay</h4>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <select
+            value={newPin == null ? '' : newPin}
+            onChange={(e) =>
+              setNewPin(
+                e.currentTarget.value === ''
+                  ? null
+                  : parseInt(e.currentTarget.value, 10),
+              )
+            }
+          >
+            <option value="">Select GPIO</option>
+            {gpioOptions !== 'loading' &&
+              gpioOptions.map((p) => (
+                <option key={p} value={p}>
+                  GPIO {p}
+                </option>
+              ))}
+          </select>
+          <label
+            style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}
+          >
+            <input
+              type="checkbox"
+              checked={newInverted}
+              onChange={(e) => setNewInverted(e.currentTarget.checked)}
+            />
+            Inverted
+          </label>
+          <button disabled={adding || newPin == null} onClick={addRelay}>
+            {adding ? 'Adding...' : 'Add Relay'}
+          </button>
+        </div>
+      </div>
       <AutomateDialog
         key={automateDialogRelay}
         relay={automateDialogRelay}

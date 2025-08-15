@@ -6,3 +6,4 @@ void setupPreferences();
 void writeRelayValues();
 void writeRelayRules();
 void writeRelayLabels();
+void writeRelayConfig();

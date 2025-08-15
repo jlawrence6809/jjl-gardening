@@ -14,27 +14,29 @@ static Timer timer(1010);
  *
  * It would be nice to make this programmable in the future.
  */
-#define SUNROOM_LIGHTS_RELAY 6
+
+ // todo: make this configurable
+#define SUNROOM_LIGHTS_RELAY 0
 
 void turnOffRelay(int relay)
 {
-    int pin = RELAY_PINS[relay];
+    int pin = RUNTIME_RELAY_PINS[relay];
     digitalWrite(pin, HIGH);
     RELAY_VALUES[relay] = FORCE_OFF_AUTO_X;
 }
 
 void turnOnRelay(int relay)
 {
-    int pin = RELAY_PINS[relay];
+    int pin = RUNTIME_RELAY_PINS[relay];
     digitalWrite(pin, LOW);
     RELAY_VALUES[relay] = FORCE_ON_AUTO_X;
 }
 
 void setupRelays()
 {
-    for (int i = 0; i < RELAY_PINS.size(); i++)
+    for (int i = 0; i < RUNTIME_RELAY_COUNT; i++)
     {
-        int pin = RELAY_PINS[i];
+        int pin = RUNTIME_RELAY_PINS[i];
         pinMode(pin, OUTPUT);
         digitalWrite(pin, HIGH);
     }
@@ -50,12 +52,12 @@ bool isRelayOn(RelayValue value)
  */
 void relayRefresh()
 {
-    for (int i = 0; i < RELAY_PINS.size(); i++)
+    for (int i = 0; i < RUNTIME_RELAY_COUNT; i++)
     {
-        bool isInverted = RELAY_IS_INVERTED[i];
+        bool isInverted = RUNTIME_RELAY_IS_INVERTED[i];
         bool value = isRelayOn(RELAY_VALUES[i]);
         bool writeValue = isInverted ? !value : value;
-        digitalWrite(RELAY_PINS[i], writeValue);
+        digitalWrite(RUNTIME_RELAY_PINS[i], writeValue);
     }
 }
 
