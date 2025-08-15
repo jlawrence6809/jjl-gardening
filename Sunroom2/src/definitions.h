@@ -12,7 +12,7 @@ constexpr int DS18B20_PIN = CFG_DS18B20_PIN; // Digital pin connected to the DHT
 constexpr int PHOTO_SENSOR_PIN = CFG_PHOTO_SENSOR_PIN;
 constexpr int LIGHT_SWITCH_PIN = CFG_LIGHT_SWITCH_PIN;
 constexpr auto RELAY_PINS = std::array{ CFG_RELAY_PINS };
-constexpr auto STRAPPING_PINS = std::array{ CFG_STRAPPING_PINS };
+// constexpr auto STRAPPING_PINS = std::array{ CFG_STRAPPING_PINS };
 constexpr auto RELAY_IS_INVERTED = std::array{ CFG_RELAY_IS_INVERTED };
 inline constexpr const char *WIFI_NAME = CFG_WIFI_NAME;
 
