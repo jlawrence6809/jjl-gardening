@@ -174,13 +174,20 @@ void processRelayRules()
             if (name == "lightSwitch") { out = getLightSwitch(); return true; }
             return false;
         };
+        // Set up actuator lookup function for rule processing system
         env.tryGetActuator = [](const std::string &name, std::function<void(float)> &setter) {
+            // Define prefix for relay actuators
             String relayPrefix = "relay_";
+            // Check if actuator name starts with "relay_" prefix
             if (name.rfind(relayPrefix.c_str(), 0) == 0) {
+                // Extract relay index number from the substring after "relay_"
                 int index = atoi(name.c_str() + relayPrefix.length());
+                // Create bound function that calls setRelay with the extracted index
                 setter = std::bind(setRelay, index, std::placeholders::_1);
+                // Return true to indicate actuator was found and setter was assigned
                 return true;
             }
+            // Return false if name doesn't match "relay_" pattern (actuator not found)
             return false;
         };
         env.getCurrentSeconds = [](){ return getCurrentSeconds(); };
