@@ -5,24 +5,52 @@
 
 #include "../src/rule_core.h"
 
+// ANSI color codes
+#define COLOR_RESET   "\033[0m"
+#define COLOR_RED     "\033[31m"
+#define COLOR_GREEN   "\033[32m"
+#define COLOR_YELLOW  "\033[33m"
+#define COLOR_BLUE    "\033[34m"
+#define COLOR_CYAN    "\033[36m"
+
 static int failures = 0;
+
+static void log_info(const std::string &msg)
+{
+    std::cout << COLOR_CYAN << "[INFO] " << msg << COLOR_RESET << std::endl;
+}
+
+static void log_debug(const std::string &msg)
+{
+    std::cout << COLOR_YELLOW << "[DEBUG] " << msg << COLOR_RESET << std::endl;
+}
+
+static void log_success(const std::string &msg)
+{
+    std::cout << COLOR_GREEN << "[PASS] " << msg << COLOR_RESET << std::endl;
+}
+
+static void log_error(const std::string &msg)
+{
+    std::cerr << COLOR_RED << "[FAIL] " << msg << COLOR_RESET << std::endl;
+}
 
 static void check(bool cond, const char *msg)
 {
     if (!cond)
     {
-        std::cerr << "FAIL: " << msg << std::endl;
+        log_error(msg);
         failures++;
     }
     else
     {
-        std::cout << "OK:   " << msg << std::endl;
+        log_success(msg);
     }
 }
 
 int main()
 {
-    std::cout << "Running rule_core native checks..." << std::endl;
+    log_info("Running rule_core native checks...");
 
     // Test 1: ["EQ", true, true] => 1.0
     {
@@ -55,7 +83,7 @@ int main()
     {
         DynamicJsonDocument doc(1024);
         auto eTop = deserializeJson(doc, "[\"AND\", [\"EQ\", true, true], [\"NOT\", [\"EQ\", true, false]]]");
-        if (eTop) { std::cerr << "FAIL: deserialize AND(...): " << eTop.c_str() << "\n"; failures++; }
+        if (eTop) { log_error("deserialize AND(...): " + std::string(eTop.c_str())); failures++; }
         RuleCoreEnv env{};
         env.tryReadSensor = [](const std::string &, float &){ return false; };
         env.getCurrentSeconds = [](){ return 0; };
@@ -65,13 +93,13 @@ int main()
         DynamicJsonDocument bDoc(512); deserializeJson(bDoc, "[\"EQ\", true, false]");
         auto a = processRuleCore(aDoc, env);
         auto b = processRuleCore(bDoc, env);
-        std::cout << "EQ(true,true) => type=" << a.type << " val=" << a.val << "\n";
-        std::cout << "EQ(true,false) => type=" << b.type << " val=" << b.val << "\n";
+        log_debug("EQ(true,true) => type=" + std::to_string(a.type) + " val=" + std::to_string(a.val));
+        log_debug("EQ(true,false) => type=" + std::to_string(b.type) + " val=" + std::to_string(b.val));
         DynamicJsonDocument notDoc(512); deserializeJson(notDoc, "[\"NOT\", [\"EQ\", true, false]]");
         auto n = processRuleCore(notDoc, env);
-        std::cout << "NOT(EQ(true,false)) => type=" << n.type << " err=" << n.errorCode << " val=" << n.val << "\n";
+        log_debug("NOT(EQ(true,false)) => type=" + std::to_string(n.type) + " err=" + std::to_string(n.errorCode) + " val=" + std::to_string(n.val));
         auto r = processRuleCore(doc, env);
-        std::cout << "AND(...) => type=" << r.type << " err=" << r.errorCode << " val=" << r.val << "\n";
+        log_debug("AND(...) => type=" + std::to_string(r.type) + " err=" + std::to_string(r.errorCode) + " val=" + std::to_string(r.val));
         check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "AND/NOT returns 1.0");
     }
 
@@ -95,10 +123,10 @@ int main()
 
     if (failures == 0)
     {
-        std::cout << "All native rule_core checks passed." << std::endl;
+        log_success("All native rule_core checks passed.");
         return 0;
     }
-    std::cerr << failures << " failures." << std::endl;
+    log_error(std::to_string(failures) + " failures.");
     return 1;
 }
 
