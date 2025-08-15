@@ -1,5 +1,5 @@
 // Mock the RELAY_COUNT import to avoid importing index.tsx
-jest.mock('../index', () => ({
+jest.mock('../sections/RelayControls', () => ({
   RELAY_COUNT: 8,
 }));
 
@@ -87,7 +87,7 @@ describe('RuleParser', () => {
       test('should parse rule with different comparison operators', () => {
         const operators = ['EQ', 'NE', 'GT', 'LT', 'GTE', 'LTE'];
 
-        operators.forEach(op => {
+        operators.forEach((op) => {
           const input = `["IF", ["${op}", "temperature", 25], ["SET", "relay_1", true], ["NOP"]]`;
           const result = parseInputString(input);
 
@@ -353,7 +353,7 @@ describe('RuleParser', () => {
           'lightSwitch',
         ];
 
-        sensors.forEach(sensor => {
+        sensors.forEach((sensor) => {
           let input: string;
           if (sensor === 'currentTime') {
             input = `["IF", ["EQ", "${sensor}", "@12:00:00"], ["SET", "relay_1", true], ["NOP"]]`;
@@ -372,7 +372,7 @@ describe('RuleParser', () => {
         // Test multiple relay numbers (assuming RELAY_COUNT is at least 3)
         const relays = ['relay_1', 'relay_2', 'relay_3'];
 
-        relays.forEach(relay => {
+        relays.forEach((relay) => {
           const input = `["IF", ["GT", "temperature", 25], ["SET", "${relay}", true], ["NOP"]]`;
           const result = parseInputString(input);
 

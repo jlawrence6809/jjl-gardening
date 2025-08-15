@@ -8,6 +8,7 @@
 #include "preferences_helpers.h"
 #include "peripheral_controls.h"
 #include "time_helpers.h"
+#include "system_status.h"
 
 // Keep an eye on this: https://github.com/microsoft/devicescript
 
@@ -34,6 +35,7 @@ void loop()
   temperatureMoistureLoop();
   // temperatureProbeLoop();
   controlPeripheralsLoop();
+  systemStatusLoop();
   // delay(500);
   // Serial.println("~~~ LOOP FINISHED ~~~");
   delay(1);

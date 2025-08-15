@@ -125,10 +125,6 @@ void controlPeripheralsLoop()
     {
         return;
     }
-
-    Serial.println("Free heap:");
-    FREE_HEAP = ESP.getFreeHeap();
-    Serial.println(FREE_HEAP);
     if (PHOTO_SENSOR_PIN >= 0)
     {
         LIGHT_LEVEL = analogRead(PHOTO_SENSOR_PIN);

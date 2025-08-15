@@ -13,6 +13,8 @@
 #include <ESPAsyncWebServer.h>
 #include <AsyncTCP.h>
 #include "rule_helpers.h"
+#include "system_info.h"
+#include "units.h"
 
 bool POST_PARAM = true;
 bool GET_PARAM = false;
@@ -23,17 +25,7 @@ String JSON_CONTENT_TYPE = "application/json";
 String PLAIN_TEXT_CONTENT_TYPE = "text/plain";
 String HTML_CONTENT_TYPE = "text/html";
 
-/**
- * Convert celsius to fahrenheit
- */
-float cToF(float c)
-{
-    if (c == NULL_TEMPERATURE)
-    {
-        return NULL_TEMPERATURE;
-    }
-    return c * 9 / 5 + 32;
-}
+ 
 
 String getRelayValues()
 {
@@ -161,19 +153,7 @@ void setupOTAUpdate()
 
 void getGlobalInfo(AsyncWebServerRequest *request)
 {
-    // clang-format off
-    request->send(200, JSON_CONTENT_TYPE,
-        buildJson({
-            {"ChipId", String(CHIP_ID, HEX)},
-            {"ResetCounter", String(RESET_COUNTER)},
-            {"LastResetReason", String(LAST_RESET_REASON)},
-            {"InternalTemperature", String(cToF(INTERNAL_CHIP_TEMPERATURE), 2)},
-            {"CurrentTime", getLocalTimeString()},
-            {"Core", String(xPortGetCoreID())},
-            {"FreeHeap", String(FREE_HEAP)}
-        })
-    );
-    // clang-format on
+    request->send(200, JSON_CONTENT_TYPE, systemInfoJson());
     Serial.println("GET /global-info done");
 }
 
