@@ -146,68 +146,40 @@ void processRelayRules()
     // LIGHT_LEVEL = 1000;
     // IS_SWITCH_ON = 1;
 
-    for (int i = 0; i < RUNTIME_RELAY_COUNT; i++)
-    {
-        // Serial.println("Processing relay rule:");
-        // Serial.println(RELAY_RULES[i]);
-
-        // Set the relay auto digit to dont care
-        setRelay(i, 2);
-
-        // parse json
-        DynamicJsonDocument doc(1024);
-        DeserializationError error = deserializeJson(doc, RELAY_RULES[i]);
-
-        if (error)
-        {
-            Serial.print(F("deserializeJson() failed: "));
-            Serial.println(error.c_str());
-            continue;
+    // Bridge to reusable, platform-neutral core evaluator
+    RuleCoreEnv env{};
+    env.tryReadSensor = [](const std::string &name, float &out) {
+        if (name == "temperature") { out = getTemperature(); return true; }
+        if (name == "humidity") { out = getHumidity(); return true; }
+        if (name == "photoSensor") { out = getPhotoSensor(); return true; }
+        if (name == "lightSwitch") { out = getLightSwitch(); return true; }
+        return false;
+    };
+    // Set up actuator lookup function for rule processing system
+    env.tryGetActuator = [](const std::string &name, std::function<void(float)> &setter) {
+        // Define prefix for relay actuators
+        String relayPrefix = "relay_";
+        // Check if actuator name starts with "relay_" prefix
+        if (name.rfind(relayPrefix.c_str(), 0) == 0) {
+            // Extract relay index number from the substring after "relay_"
+            int index = atoi(name.c_str() + relayPrefix.length());
+            // Create bound function that calls setRelay with the extracted index
+            setter = std::bind(setRelay, index, std::placeholders::_1);
+            // Return true to indicate actuator was found and setter was assigned
+            return true;
         }
+        // Return false if name doesn't match "relay_" pattern (actuator not found)
+        return false;
+    };
+    env.getCurrentSeconds = [](){ return getCurrentSeconds(); };
+    env.parseTimeLiteral = [](const std::string &hhmm){ return mintuesFromHHMMSS(String(hhmm.c_str())); };
 
-        // Bridge to reusable, platform-neutral core evaluator
-        RuleCoreEnv env{};
-        env.tryReadSensor = [](const std::string &name, float &out) {
-            if (name == "temperature") { out = getTemperature(); return true; }
-            if (name == "humidity") { out = getHumidity(); return true; }
-            if (name == "photoSensor") { out = getPhotoSensor(); return true; }
-            if (name == "lightSwitch") { out = getLightSwitch(); return true; }
-            return false;
-        };
-        // Set up actuator lookup function for rule processing system
-        env.tryGetActuator = [](const std::string &name, std::function<void(float)> &setter) {
-            // Define prefix for relay actuators
-            String relayPrefix = "relay_";
-            // Check if actuator name starts with "relay_" prefix
-            if (name.rfind(relayPrefix.c_str(), 0) == 0) {
-                // Extract relay index number from the substring after "relay_"
-                int index = atoi(name.c_str() + relayPrefix.length());
-                // Create bound function that calls setRelay with the extracted index
-                setter = std::bind(setRelay, index, std::placeholders::_1);
-                // Return true to indicate actuator was found and setter was assigned
-                return true;
-            }
-            // Return false if name doesn't match "relay_" pattern (actuator not found)
-            return false;
-        };
-        env.getCurrentSeconds = [](){ return getCurrentSeconds(); };
-        env.parseTimeLiteral = [](const std::string &hhmm){ return mintuesFromHHMMSS(String(hhmm.c_str())); };
-
-        RuleReturn result = processRuleCore(doc, env);
-
-        if (result.type == FLOAT_TYPE)
-        {
-            Serial.println("Setting actuator: " + String(i) + " to: " + String(result.val));
-            getActuatorSetter("relay_" + String(i))(result.val);
-        }
-        else if (result.type != VOID_TYPE)
-        {
-            Serial.println("Unexpected rule result: ");
-            printRuleReturn(result);
-        }
-        // else
-        // {
-        //     Serial.println("Rule processed successfully");
-        // }
+    // Convert Arduino String array to std::string array for platform-neutral core
+    std::string stdRules[RUNTIME_RELAY_COUNT];
+    for (int i = 0; i < RUNTIME_RELAY_COUNT; i++) {
+        stdRules[i] = std::string(RELAY_RULES[i].c_str());
     }
+
+    // Use the generic rule processing function with unified actuator system
+    processRuleSet(stdRules, RUNTIME_RELAY_COUNT, env);
 }

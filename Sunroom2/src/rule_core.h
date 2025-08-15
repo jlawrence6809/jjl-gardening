@@ -19,4 +19,11 @@ struct RuleCoreEnv {
 
 RuleReturn processRuleCore(JsonVariantConst doc, const RuleCoreEnv &env);
 
+// Process a set of rules with generic result handling
+void processRuleSet(
+    const std::string rules[], 
+    int ruleCount, 
+    const RuleCoreEnv &env
+);
+
 

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <functional>
+#include <vector>
 #include <ArduinoJson.h>
 
 #include "../src/rule_core.h"
@@ -251,6 +252,51 @@ int main()
         env.tryReadSensor = [](const std::string &, float &){ return false; };
         auto r = processRuleCore(doc, env);
         check(r.type == ERROR_TYPE && r.errorCode != 0, "GT(unknown_sensor, 20) returns error");
+    }
+
+    // Test 17: processRuleSet with multiple rules using unified actuator system
+    {
+        std::string rules[] = {
+            "[\"GT\", \"temperature\", 20]",
+            "[\"SET\", \"relay_0\", 1]",
+            "[\"LT\", \"humidity\", 80]"
+        };
+        
+        // Track actuator calls with unified system
+        struct ActuatorCall { std::string name; float value; };
+        std::vector<ActuatorCall> actuatorCalls;
+        
+        RuleCoreEnv env{};
+        env.tryReadSensor = [](const std::string &name, float &out){
+            if (name == "temperature") { out = 25.0f; return true; }
+            if (name == "humidity") { out = 60.0f; return true; }
+            return false;
+        };
+        env.tryGetActuator = [&](const std::string &name, std::function<void(float)> &setter){
+            if (name.rfind("relay_", 0) == 0) { // Any relay
+                setter = [&, name](float v){ actuatorCalls.push_back({name, v}); };
+                return true;
+            }
+            return false;
+        };
+        
+        processRuleSet(rules, 3, env);
+        
+        // Should have calls: relay_0(2), relay_1(2), relay_2(2) for initialization
+        // Plus: relay_0(1.0) for GT result, relay_0(1) for SET, relay_2(1.0) for LT result
+        bool foundGTResult = false;
+        bool foundSETResult = false;
+        bool foundLTResult = false;
+        
+        for (const auto& call : actuatorCalls) {
+            if (call.name == "relay_0" && std::abs(call.value - 1.0f) < 0.001f) foundGTResult = true;
+            if (call.name == "relay_0" && std::abs(call.value - 1.0f) < 0.001f) foundSETResult = true; // SET also calls relay_0 with 1
+            if (call.name == "relay_2" && std::abs(call.value - 1.0f) < 0.001f) foundLTResult = true;
+        }
+        
+        check(foundGTResult, "processRuleSet: Rule 0 (GT) sets relay_0 to 1.0");
+        check(foundSETResult, "processRuleSet: Rule 1 (SET) calls relay_0 with 1.0");
+        check(foundLTResult, "processRuleSet: Rule 2 (LT) sets relay_2 to 1.0");
     }
 
     if (failures == 0)

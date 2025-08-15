@@ -156,4 +156,67 @@ RuleReturn processRuleCore(JsonVariantConst doc, const RuleCoreEnv &env)
     return createErrorRuleReturn(UNREC_FUNC_ERROR);
 }
 
+void processRuleSet(
+    const std::string rules[], 
+    int ruleCount, 
+    const RuleCoreEnv &env
+)
+{
+    for (int i = 0; i < ruleCount; i++)
+    {
+        // Set the relay auto digit to dont care using the unified actuator system
+        if (env.tryGetActuator) {
+            std::function<void(float)> setter;
+            if (env.tryGetActuator("relay_" + std::to_string(i), setter) && setter) {
+                setter(2.0f);
+            }
+        }
+
+        // Parse JSON
+        DynamicJsonDocument doc(1024);
+        DeserializationError error = deserializeJson(doc, rules[i].c_str());
+
+        if (error)
+        {
+            // Platform-neutral error logging (could be enhanced with callback)
+            // For now, assume Serial is available in embedded context
+            #ifdef ARDUINO
+            Serial.print(F("deserializeJson() failed: "));
+            Serial.println(error.c_str());
+            #endif
+            continue;
+        }
+
+        // Process the rule using the core evaluator
+        RuleReturn result = processRuleCore(doc, env);
+
+        // Handle results based on type
+        if (result.type == FLOAT_TYPE)
+        {
+            #ifdef ARDUINO
+            Serial.println("Setting actuator: " + String(i) + " to: " + String(result.val));
+            #endif
+            // Use unified actuator system for implicit relay control
+            if (env.tryGetActuator) {
+                std::function<void(float)> setter;
+                if (env.tryGetActuator("relay_" + std::to_string(i), setter) && setter) {
+                    setter(result.val);
+                }
+            }
+        }
+        else if (result.type != VOID_TYPE)
+        {
+            #ifdef ARDUINO
+            Serial.println("Unexpected rule result: ");
+            // Note: printRuleReturn is Arduino-specific, keep in rule_helpers.cpp
+            Serial.println("RuleReturn:");
+            Serial.println("\ttype: " + String(result.type));
+            Serial.println("\terrorCode: " + String(result.errorCode));
+            Serial.println("\tval: " + String(result.val));
+            #endif
+        }
+        // VOID_TYPE results are successful no-ops, continue silently
+    }
+}
+
 
