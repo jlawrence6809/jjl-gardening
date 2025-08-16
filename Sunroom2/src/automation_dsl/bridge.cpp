@@ -1,12 +1,12 @@
-#include "types.h"
 #include <Arduino.h>
+#include <ArduinoJson.h>
+#include <functional>
+#include <map>
 #include <time.h>
+#include "core.h"
 #include "definitions.h"
 #include "interval_timer.h"
-#include <ArduinoJson.h>
-#include <map>
-#include <functional>
-#include "core.h"
+#include "types.h"
 #include "value_types.h"
 
 /**
@@ -15,7 +15,8 @@
  * Temperature rules:
  * ["IF", ["EQ", "temperature", 25], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
  * ["IF", ["GT", "temperature", 25], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
- * ["IF", ["AND", ["GT", "temperature", 25], ["LT", "temperature", 30]], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ * ["IF", ["AND", ["GT", "temperature", 25], ["LT", "temperature", 30]], ["SET", "relay_0", 1],
+ * ["SET", "relay_0", 0]]
  *
  * Time rules:
  * ["IF", ["GT", "currentTime", "@12:00:00"], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
@@ -37,11 +38,13 @@
  * Implementation:
  * - store the last time the rules were processed
  * - compare the last time to the current time
- * - if the last time is less than the target time and the current time is greater than the target time, return true
+ * - if the last time is less than the target time and the current time is greater than the target
+ * time, return true
  *
  * Could also implement it by allowing for a "lastCheckedTime" variable to be referenced:
  *
- * ["IF", ["AND", ["GT", "currentTime", "@12:00:00"], ["LT", "lastCheckedTime", "@12:00:00"]], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ * ["IF", ["AND", ["GT", "currentTime", "@12:00:00"], ["LT", "lastCheckedTime", "@12:00:00"]],
+ * ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
  *
  */
 
@@ -52,46 +55,36 @@
  * value = 1 means auto on
  * value = 0 means auto off
  */
-void setRelay(int index, float value)
-{
+void setRelay(int index, float value) {
     RelayValue currentValue = RELAY_VALUES[index];
 
     int intVal = static_cast<int>(value);
 
-    // lowest (ones) tenths digit is the "force" value that we don't want to change, just update the auto value (tens digit)
+    // lowest (ones) tenths digit is the "force" value that we don't want to change, just update the
+    // auto value (tens digit)
     int onesDigit = currentValue % 10;
     int newValue = (intVal * 10) + onesDigit;
 
     RELAY_VALUES[index] = static_cast<RelayValue>(newValue);
 }
 
-float getTemperature()
-{
-    return CURRENT_TEMPERATURE;
-}
+float getTemperature() { return CURRENT_TEMPERATURE; }
 
-float getHumidity()
-{
-    return CURRENT_HUMIDITY;
-}
+float getHumidity() { return CURRENT_HUMIDITY; }
 
-float getPhotoSensor()
-{
+float getPhotoSensor() {
     float out = LIGHT_LEVEL;
     return out;
 }
 
-float getLightSwitch()
-{
+float getLightSwitch() {
     float out = IS_SWITCH_ON;
     return out;
 }
 
-std::function<void(float)> getActuatorSetter(String name)
-{
+std::function<void(float)> getActuatorSetter(String name) {
     String relayPrefix = "relay_";
-    if (name.startsWith(relayPrefix))
-    {
+    if (name.startsWith(relayPrefix)) {
         int index = name.substring(relayPrefix.length()).toInt();
         return std::bind(setRelay, index, std::placeholders::_1);
     }
@@ -99,16 +92,12 @@ std::function<void(float)> getActuatorSetter(String name)
     return 0;
 }
 
-
-
 /**
  * Get the current time in minutes
  */
-int getCurrentSeconds()
-{
+int getCurrentSeconds() {
     struct tm timeinfo;
-    if (!getLocalTime(&timeinfo))
-    {
+    if (!getLocalTime(&timeinfo)) {
         Serial.println("Failed to obtain time");
         return -1;
     }
@@ -118,9 +107,7 @@ int getCurrentSeconds()
     return (hours * 60 * 60) + (minutes * 60) + seconds;
 }
 
-
-void printRuleReturn(RuleReturn result)
-{
+void printRuleReturn(RuleReturn result) {
     Serial.println("RuleReturn:");
     Serial.println("\ttype: " + String(result.type));
     Serial.println("\terrorCode: " + String(result.errorCode));
@@ -130,8 +117,7 @@ void printRuleReturn(RuleReturn result)
 /**
  * Process the relay rules
  */
-void processAutomationDsl()
-{
+void processAutomationDsl() {
     // // setup some test values
     // CURRENT_TEMPERATURE = 25.0;
     // CURRENT_HUMIDITY = 50.0;
@@ -141,11 +127,26 @@ void processAutomationDsl()
     // Bridge to reusable, platform-neutral core evaluator
     RuleCoreEnv env{};
     env.tryReadValue = [](const std::string &name, SensorValue &out) {
-        if (name == "temperature") { out = SensorValue(getTemperature()); return true; }
-        if (name == "humidity") { out = SensorValue(getHumidity()); return true; }
-        if (name == "photoSensor") { out = SensorValue(getPhotoSensor()); return true; }
-        if (name == "lightSwitch") { out = SensorValue(getLightSwitch()); return true; }
-        if (name == "currentTime") { out = SensorValue(getCurrentSeconds()); return true; }
+        if (name == "temperature") {
+            out = SensorValue(getTemperature());
+            return true;
+        }
+        if (name == "humidity") {
+            out = SensorValue(getHumidity());
+            return true;
+        }
+        if (name == "photoSensor") {
+            out = SensorValue(getPhotoSensor());
+            return true;
+        }
+        if (name == "lightSwitch") {
+            out = SensorValue(getLightSwitch());
+            return true;
+        }
+        if (name == "currentTime") {
+            out = SensorValue(getCurrentSeconds());
+            return true;
+        }
         return false;
     };
     // Set up actuator lookup function for rule processing system
@@ -164,7 +165,6 @@ void processAutomationDsl()
         // Return false if name doesn't match "relay_" pattern (actuator not found)
         return false;
     };
-
 
     // Convert Arduino String array to std::string array for platform-neutral core
     std::string stdRules[RUNTIME_RELAY_COUNT];

@@ -1,5 +1,5 @@
-#include <Arduino.h>
 #include "definitions.h"
+#include <Arduino.h>
 
 uint64_t CHIP_ID = 0;
 uint64_t DEVICE_1 = 0xa85627a4ae30;

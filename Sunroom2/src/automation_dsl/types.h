@@ -2,16 +2,9 @@
 #include <ArduinoJson.h>
 #include <functional>
 
-enum TypeCode
-{
-    ERROR_TYPE = -1,
-    VOID_TYPE = 0,
-    FLOAT_TYPE = 1,
-    BOOL_ACTUATOR_TYPE = 2
-};
+enum TypeCode { ERROR_TYPE = -1, VOID_TYPE = 0, FLOAT_TYPE = 1, BOOL_ACTUATOR_TYPE = 2 };
 
-enum ErrorCode
-{
+enum ErrorCode {
     NO_ERROR = 0,
     UNREC_TYPE_ERROR = 1,
     IF_CONDITION_ERROR = 2,
@@ -26,8 +19,7 @@ enum ErrorCode
     TIME_ERROR = 11,
 };
 
-struct RuleReturn
-{
+struct RuleReturn {
     TypeCode type;
     ErrorCode errorCode;
     float val;

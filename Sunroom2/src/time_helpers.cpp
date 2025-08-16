@@ -1,10 +1,10 @@
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <WiFi.h>
-#include "time.h"
+#include <HTTPClient.h>
 #include "definitions.h"
 #include "interval_timer.h"
-#include <ArduinoJson.h>
-#include <HTTPClient.h>
+#include "time.h"
 
 static String WORLDTIME_API = "http://worldtimeapi.org/api/ip";
 // Refresh the time every 24 hours
@@ -21,28 +21,22 @@ bool TIMEZONE_OFFSET_IS_SET = false;
 /**
  * Query for the time from the internet
  */
-void queryForTime()
-{
+void queryForTime() {
     Serial.println("Querying for time...");
     configTime(RAW_OFFSET, DST_OFFSET, "pool.ntp.org", "time.nist.gov");
 }
 
-void checkTimeIsSet()
-{
-    if (TIME_IS_SET)
-    {
+void checkTimeIsSet() {
+    if (TIME_IS_SET) {
         return;
     }
-    if (time(nullptr))
-    {
+    if (time(nullptr)) {
         TIME_IS_SET = true;
         struct tm timeinfo;
-        getLocalTime(&timeinfo); // Fix: Pass the address of timeinfo
+        getLocalTime(&timeinfo);  // Fix: Pass the address of timeinfo
         String timeString = String(asctime(&timeinfo));
         Serial.println("\nTime is set: " + timeString);
-    }
-    else
-    {
+    } else {
         queryForTime();
     }
 }
@@ -50,30 +44,26 @@ void checkTimeIsSet()
 /**
  * Use the worldtimeapi.org API to get the timezone offset based on the IP address
  */
-void queryForTimezoneOffset()
-{
+void queryForTimezoneOffset() {
     Serial.println("Querying for timezone offset...");
     HTTPClient http;
     http.begin(WORLDTIME_API);
     int httpCode = http.GET();
 
-    if (httpCode > 0)
-    {
+    if (httpCode > 0) {
         String payload = http.getString();
         DynamicJsonDocument doc(1024);
         deserializeJson(doc, payload);
 
-        String timezone = doc["timezone"]; // The timezone
-        RAW_OFFSET = doc["raw_offset"];    // The raw offset in seconds
-        DST_OFFSET = doc["dst_offset"];    // The daylight savings offset in seconds
+        String timezone = doc["timezone"];  // The timezone
+        RAW_OFFSET = doc["raw_offset"];     // The raw offset in seconds
+        DST_OFFSET = doc["dst_offset"];     // The daylight savings offset in seconds
 
         Serial.println("Timezone: " + timezone);
         Serial.println("Raw offset: " + String(RAW_OFFSET));
         Serial.println("DST offset: " + String(DST_OFFSET));
         TIMEZONE_OFFSET_IS_SET = true;
-    }
-    else
-    {
+    } else {
         Serial.println("Error in HTTP request");
     }
     http.end();
@@ -82,30 +72,24 @@ void queryForTimezoneOffset()
 /**
  * Updates the time from the internet
  */
-void updateTimeLoop()
-{
-    if (WiFi.getMode() == WIFI_AP || WiFi.status() != WL_CONNECTED)
-    {
+void updateTimeLoop() {
+    if (WiFi.getMode() == WIFI_AP || WiFi.status() != WL_CONNECTED) {
         // If in AP mode or disconnected, we can't get time from the internet
         return;
     }
 
-    if (refreshTimer.isIntervalPassed())
-    {
+    if (refreshTimer.isIntervalPassed()) {
         TIME_IS_SET = false;
     }
 
-    if (!initializeTimer.isIntervalPassed())
-    {
+    if (!initializeTimer.isIntervalPassed()) {
         return;
     }
 
     // We only need to query for the timezone offset once
-    if (!TIMEZONE_OFFSET_IS_SET)
-    {
+    if (!TIMEZONE_OFFSET_IS_SET) {
         queryForTimezoneOffset();
-        if (TIMEZONE_OFFSET_IS_SET)
-        {
+        if (TIMEZONE_OFFSET_IS_SET) {
             queryForTime();
 
             // Add a little time for happy path time fetch to complete
@@ -119,10 +103,10 @@ void updateTimeLoop()
 
 /**
  * Returns the current time as a string
- * passes 9 in the ms argument of getLocalTime so it isn't blocking (check out the implementation of getLocalTime)
+ * passes 9 in the ms argument of getLocalTime so it isn't blocking (check out the implementation of
+ * getLocalTime)
  */
-String getLocalTimeString()
-{
+String getLocalTimeString() {
     struct tm timeinfo;
     getLocalTime(&timeinfo, 9);
     return String(asctime(&timeinfo));

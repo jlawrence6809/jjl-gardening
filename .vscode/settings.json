@@ -1,19 +1,36 @@
 {
-    "files.associations": {
-        "__bit_reference": "cpp",
-        "__node_handle": "cpp",
-        "atomic": "cpp",
-        "bitset": "cpp",
-        "chrono": "cpp",
-        "cstddef": "cpp",
-        "__memory": "cpp",
-        "limits": "cpp",
-        "locale": "cpp",
-        "optional": "cpp",
-        "ratio": "cpp",
-        "system_error": "cpp",
-        "tuple": "cpp",
-        "type_traits": "cpp",
-        "vector": "cpp"
-    }
+  "files.associations": {
+    "__bit_reference": "cpp",
+    "__node_handle": "cpp",
+    "atomic": "cpp",
+    "bitset": "cpp",
+    "chrono": "cpp",
+    "cstddef": "cpp",
+    "__memory": "cpp",
+    "limits": "cpp",
+    "locale": "cpp",
+    "optional": "cpp",
+    "ratio": "cpp",
+    "system_error": "cpp",
+    "tuple": "cpp",
+    "type_traits": "cpp",
+    "vector": "cpp"
+  },
+
+  // C++ formatting with clang-format
+  "C_Cpp.clang_format_style": "file",
+  "C_Cpp.clang_format_fallbackStyle": "Google",
+  "[cpp]": {
+    "editor.defaultFormatter": "ms-vscode.cpptools",
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true
+  },
+  "[c]": {
+    "editor.defaultFormatter": "ms-vscode.cpptools",
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true
+  },
+
+  // PlatformIO specific settings
+  "platformio-ide.projectDir": "Sunroom2"
 }
