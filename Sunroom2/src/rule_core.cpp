@@ -217,11 +217,11 @@ RuleReturn processRuleCore(JsonVariantConst doc, const RuleCoreEnv &env)
                 }
             }
 
-            // SENSOR READING: Try to read sensor value
-            if (env.tryReadSensor)
+            // VALUE READING: Try to read value (sensors, computed values, etc.)
+            if (env.tryReadValue)
             {
                 SensorValue val(0.0f);
-                if (env.tryReadSensor(str, val))
+                if (env.tryReadValue(str, val))
                 {
                     // Convert SensorValue to float for backward compatibility
                     return createFloatRuleReturn(val.asFloat());
@@ -235,7 +235,7 @@ RuleReturn processRuleCore(JsonVariantConst doc, const RuleCoreEnv &env)
                 return secs < 0 ? createErrorRuleReturn(TIME_ERROR) : createIntRuleReturn(secs);
             }
 
-            // UNKNOWN STRING: Not a time literal, sensor, actuator, or special string
+            // UNKNOWN STRING: Not a time literal, value, actuator, or special string
             return createErrorRuleReturn(UNREC_STR_ERROR);
         }
         // BOOLEAN LITERAL: true/false converted to 1.0/0.0

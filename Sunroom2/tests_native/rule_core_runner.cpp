@@ -60,7 +60,7 @@ int main()
         DynamicJsonDocument doc(256);
         deserializeJson(doc, "[\"EQ\", true, true]");
         RuleCoreEnv env{};
-        env.tryReadSensor = [](const std::string &, SensorValue &){ return false; };
+        env.tryReadValue = [](const std::string &, SensorValue &){ return false; };
         env.getCurrentSeconds = [](){ return 0; };
         auto r = processRuleCore(doc, env);
         check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "EQ true,true -> 1.0");
@@ -72,7 +72,7 @@ int main()
         DynamicJsonDocument doc(512);
         deserializeJson(doc, "[\"IF\", [\"GT\", \"temperature\", 20], [\"SET\", \"relay_0\", 1], [\"SET\", \"relay_0\", 0]]");
         RuleCoreEnv env{};
-        env.tryReadSensor = [](const std::string &name, SensorValue &out){ if (name=="temperature"){ out=SensorValue(22.0f); return true;} return false; };
+        env.tryReadValue = [](const std::string &name, SensorValue &out){ if (name=="temperature"){ out=SensorValue(22.0f); return true;} return false; };
         env.tryGetActuator = [&](const std::string &name, std::function<void(float)> &setter){ if (name=="relay_0"){ setter = [&](float v){ last=v; }; return true;} return false; };
         env.getCurrentSeconds = [](){ return 0; };
         auto r = processRuleCore(doc, env);
@@ -86,7 +86,7 @@ int main()
         auto eTop = deserializeJson(doc, "[\"AND\", [\"EQ\", true, true], [\"NOT\", [\"EQ\", true, false]]]");
         if (eTop) { log_error("deserialize AND(...): " + std::string(eTop.c_str())); failures++; }
         RuleCoreEnv env{};
-        env.tryReadSensor = [](const std::string &, SensorValue &){ return false; };
+        env.tryReadValue = [](const std::string &, SensorValue &){ return false; };
         env.getCurrentSeconds = [](){ return 0; };
         // Debug sub-evals
         DynamicJsonDocument aDoc(512); deserializeJson(aDoc, "[\"EQ\", true, true]");
@@ -166,12 +166,12 @@ int main()
         check(r.type == FLOAT_TYPE && std::abs(r.val - 0.0f) < 0.001f, "GT(15.0, 20.0) => 0.0");
     }
 
-    // Test 11: Sensor reading with GT comparison
+    // Test 11: Value reading with GT comparison
     {
         DynamicJsonDocument doc(256);
         deserializeJson(doc, "[\"GT\", \"temperature\", 22.0]");
         RuleCoreEnv env{};
-        env.tryReadSensor = [](const std::string &name, SensorValue &out){ 
+        env.tryReadValue = [](const std::string &name, SensorValue &out){ 
             if (name == "temperature") { out = SensorValue(25.3f); return true; } 
             return false; 
         };
@@ -195,7 +195,7 @@ int main()
         DynamicJsonDocument doc(512);
         deserializeJson(doc, "[\"AND\", [\"GT\", \"temperature\", 20.0], [\"LT\", \"humidity\", 80.0]]");
         RuleCoreEnv env{};
-        env.tryReadSensor = [](const std::string &name, SensorValue &out){ 
+        env.tryReadValue = [](const std::string &name, SensorValue &out){ 
             if (name == "temperature") { out = SensorValue(23.5f); return true; }
             if (name == "humidity") { out = SensorValue(65.2f); return true; }
             return false; 
@@ -209,7 +209,7 @@ int main()
         DynamicJsonDocument doc(512);
         deserializeJson(doc, "[\"OR\", [\"GT\", \"temperature\", 30.0], [\"LT\", \"humidity\", 80.0]]");
         RuleCoreEnv env{};
-        env.tryReadSensor = [](const std::string &name, SensorValue &out){ 
+        env.tryReadValue = [](const std::string &name, SensorValue &out){ 
             if (name == "temperature") { out = SensorValue(23.5f); return true; }
             if (name == "humidity") { out = SensorValue(65.2f); return true; }
             return false; 
@@ -224,7 +224,7 @@ int main()
         DynamicJsonDocument doc(512);
         deserializeJson(doc, "[\"IF\", [\"GT\", \"temperature\", 25.0], [\"SET\", \"relay_0\", 1.0], [\"SET\", \"relay_0\", 0.0]]");
         RuleCoreEnv env{};
-        env.tryReadSensor = [](const std::string &name, SensorValue &out){ 
+        env.tryReadValue = [](const std::string &name, SensorValue &out){ 
             if (name == "temperature") { out = SensorValue(22.0f); return true; }
             return false; 
         };
@@ -245,9 +245,9 @@ int main()
         DynamicJsonDocument doc(256);
         deserializeJson(doc, "[\"GT\", \"unknown_sensor\", 20.0]");
         RuleCoreEnv env{};
-        env.tryReadSensor = [](const std::string &, SensorValue &){ return false; };
+        env.tryReadValue = [](const std::string &, SensorValue &){ return false; };
         auto r = processRuleCore(doc, env);
-        check(r.type == ERROR_TYPE && r.errorCode != 0, "GT(unknown_sensor, 20) returns error");
+        check(r.type == ERROR_TYPE && r.errorCode != 0, "GT(unknown_value, 20) returns error");
     }
 
     // Test 17: Time literal parsing - valid cases
@@ -432,7 +432,7 @@ int main()
         std::vector<ActuatorCall> actuatorCalls;
         
         RuleCoreEnv env{};
-                env.tryReadSensor = [](const std::string &name, SensorValue &out){ 
+                env.tryReadValue = [](const std::string &name, SensorValue &out){ 
             if (name == "temperature") { out = SensorValue(25.0f); return true; }
             if (name == "humidity") { out = SensorValue(60.0f); return true; }
             return false;
@@ -574,7 +574,7 @@ int main()
             {"error_code", SensorValue("404")} // String that can be parsed as number
         };
         
-        env.tryReadSensor = [&sensors](const std::string &name, SensorValue &out) {
+        env.tryReadValue = [&sensors](const std::string &name, SensorValue &out) {
             auto it = sensors.find(name);
             if (it != sensors.end()) {
                 out = it->second;
@@ -583,32 +583,32 @@ int main()
             return false;
         };
         
-        // Test reading different sensor types through rule engine
+        // Test reading different value types through rule engine
         DynamicJsonDocument doc1(256);
         deserializeJson(doc1, "\"temperature\"");
         RuleReturn result1 = processRuleCore(doc1, env);
-        check(result1.type == FLOAT_TYPE && result1.val == 25.5f, "Rule engine reads float sensor");
+        check(result1.type == FLOAT_TYPE && result1.val == 25.5f, "Rule engine reads float value");
         
         DynamicJsonDocument doc2(256);
         deserializeJson(doc2, "\"count\"");
         RuleReturn result2 = processRuleCore(doc2, env);
-        check(result2.type == FLOAT_TYPE && result2.val == 42.0f, "Rule engine reads int sensor (converted to float)");
+        check(result2.type == FLOAT_TYPE && result2.val == 42.0f, "Rule engine reads int value (converted to float)");
         
         DynamicJsonDocument doc3(256);
         deserializeJson(doc3, "\"error_code\"");
         RuleReturn result3 = processRuleCore(doc3, env);
-        check(result3.type == FLOAT_TYPE && result3.val == 404.0f, "Rule engine reads string sensor (parsed as float)");
+        check(result3.type == FLOAT_TYPE && result3.val == 404.0f, "Rule engine reads string value (parsed as float)");
         
-        // Test comparison with variant sensors
+        // Test comparison with variant values
         DynamicJsonDocument doc4(256);
         deserializeJson(doc4, "[\"GT\", \"temperature\", 25]");
         RuleReturn result4 = processRuleCore(doc4, env);
-        check(result4.type == FLOAT_TYPE && result4.val == 1.0f, "Rule engine comparison with variant sensor");
+        check(result4.type == FLOAT_TYPE && result4.val == 1.0f, "Rule engine comparison with variant value");
         
         DynamicJsonDocument doc5(256);
         deserializeJson(doc5, "[\"EQ\", \"count\", 42]");
         RuleReturn result5 = processRuleCore(doc5, env);
-        check(result5.type == FLOAT_TYPE && result5.val == 1.0f, "Rule engine equality with int sensor");
+        check(result5.type == FLOAT_TYPE && result5.val == 1.0f, "Rule engine equality with int value");
     }
     
     if (failures == 0)

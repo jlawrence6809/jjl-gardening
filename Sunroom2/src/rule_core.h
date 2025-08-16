@@ -35,14 +35,14 @@
  */
 struct RuleCoreEnv {
     /**
-     * @brief Sensor reading callback
-     * @param name Sensor identifier (e.g., "temperature", "humidity", "photoSensor")
-     * @param outVal Reference to store the sensor value if found
-     * @return true if sensor exists and value was set, false if sensor unknown
+     * @brief Value reading callback
+     * @param name Value identifier (e.g., "temperature", "humidity", "photoSensor", "currentTime")
+     * @param outVal Reference to store the value if found
+     * @return true if value exists and was set, false if value unknown
      * 
      * Example implementation:
      * ```cpp
-     * env.tryReadSensor = [](const std::string &name, SensorValue &out) {
+     * env.tryReadValue = [](const std::string &name, SensorValue &out) {
      *     if (name == "temperature") { out = SensorValue(getTemperature()); return true; }
      *     if (name == "humidity") { out = SensorValue(getHumidity()); return true; }
      *     if (name == "status") { out = SensorValue("connected"); return true; }
@@ -50,7 +50,7 @@ struct RuleCoreEnv {
      * };
      * ```
      */
-    std::function<bool(const std::string &name, SensorValue &outVal)> tryReadSensor;
+    std::function<bool(const std::string &name, SensorValue &outVal)> tryReadValue;
     
     /**
      * @brief Actuator control callback

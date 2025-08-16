@@ -140,7 +140,7 @@ void processRelayRules()
 
     // Bridge to reusable, platform-neutral core evaluator
     RuleCoreEnv env{};
-    env.tryReadSensor = [](const std::string &name, SensorValue &out) {
+    env.tryReadValue = [](const std::string &name, SensorValue &out) {
         if (name == "temperature") { out = SensorValue(getTemperature()); return true; }
         if (name == "humidity") { out = SensorValue(getHumidity()); return true; }
         if (name == "photoSensor") { out = SensorValue(getPhotoSensor()); return true; }
