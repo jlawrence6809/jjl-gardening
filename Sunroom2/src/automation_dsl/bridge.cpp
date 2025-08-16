@@ -1,4 +1,4 @@
-#include "rule_helpers.h"
+#include "types.h"
 #include <Arduino.h>
 #include <time.h>
 #include "definitions.h"
@@ -6,8 +6,8 @@
 #include <ArduinoJson.h>
 #include <map>
 #include <functional>
-#include "rule_core.h"
-#include "sensor_value.h"
+#include "core.h"
+#include "value_types.h"
 
 /**
  * This file contains the logic for processing the relay rules

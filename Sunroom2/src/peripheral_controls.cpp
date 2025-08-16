@@ -4,7 +4,10 @@
 #include "interval_timer.h"
 #include "time_helpers.h"
 #include <ArduinoJson.h>
-#include "rule_helpers.h"
+#include "automation_dsl/types.h"
+
+// Forward declaration of processRelayRules from automation_dsl/bridge.cpp
+void processRelayRules();
 
 static Timer timer(1010);
 

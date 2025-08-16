@@ -36,7 +36,7 @@ fi
 echo "[native-tests] Building with $CXX_BIN..."
 "$CXX_BIN" -std=c++17 -O2 \
   -I"$INC_DIR" \
-  src/rule_core.cpp \
+  src/automation_dsl/core.cpp \
   tests_native/rule_core_runner.cpp \
   -o "$BIN"
 

@@ -4,8 +4,8 @@
 #include <functional>
 #include <string>
 
-#include "rule_helpers.h" // Reuse TypeCode, ErrorCode, RuleReturn
-#include "sensor_value.h" // Variant type for sensor values
+#include "types.h" // Reuse TypeCode, ErrorCode, RuleReturn
+#include "value_types.h" // Variant type for sensor values
 
 /**
  * @file rule_core.h

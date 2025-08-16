@@ -12,7 +12,7 @@
 #include <ArduinoJson.h>
 #include <ESPAsyncWebServer.h>
 #include <AsyncTCP.h>
-#include "rule_helpers.h"
+#include "automation_dsl/types.h"
 #include "system_info.h"
 #include "units.h"
 #include "peripheral_controls.h"

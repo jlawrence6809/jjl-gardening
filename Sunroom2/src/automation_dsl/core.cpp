@@ -18,10 +18,10 @@
  * - Sensor reading and actuator control abstraction
  */
 
-#include "rule_core.h"
+#include "core.h"
 #include <string>
 #include <cstring>
-#include "sensor_value.h"
+#include "value_types.h"
 
 /**
  * @brief Create a RuleReturn structure with specified parameters

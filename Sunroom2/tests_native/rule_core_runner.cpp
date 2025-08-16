@@ -5,8 +5,8 @@
 #include <map>
 #include <ArduinoJson.h>
 
-#include "../src/rule_core.h"
-#include "../src/sensor_value.h"
+#include "../src/automation_dsl/core.h"
+#include "../src/automation_dsl/value_types.h"
 
 // ANSI color codes
 #define COLOR_RESET   "\033[0m"
