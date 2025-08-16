@@ -16,7 +16,7 @@ Replace the current "everything is float" sensor value system with a more flexib
 ### Core Variant Structure
 
 ```cpp
-struct SensorValue {
+struct ValueTaggedUnion {
     enum Type { FLOAT, INT, STRING } type;
     union {
         float f;
@@ -25,9 +25,9 @@ struct SensorValue {
     } value;
 
     // Constructor overloads for easy creation
-    SensorValue(float val) : type(FLOAT) { value.f = val; }
-    SensorValue(int val) : type(INT) { value.i = val; }
-    SensorValue(const char* val) : type(STRING) { value.s = val; }
+    ValueTaggedUnion(float val) : type(FLOAT) { value.f = val; }
+    ValueTaggedUnion(int val) : type(INT) { value.i = val; }
+    ValueTaggedUnion(const char* val) : type(STRING) { value.s = val; }
 
     // Conversion methods with type checking
     float asFloat() const;
@@ -44,7 +44,7 @@ struct SensorValue {
 ```cpp
 // Update RuleCoreEnv to use variant values
 struct RuleCoreEnv {
-    std::function<bool(const std::string &name, SensorValue &outVal)> tryReadSensor;
+    std::function<bool(const std::string &name, ValueTaggedUnion &outVal)> tryReadSensor;
     // ... other members unchanged
 };
 ```
@@ -82,7 +82,7 @@ For backward compatibility and rule simplicity:
 
 ### Phase 1: Internal Refactor
 
-1. Implement `SensorValue` variant type
+1. Implement `ValueTaggedUnion` variant type
 2. Update `RuleCoreEnv` to use variants internally
 3. Maintain float-based external API for compatibility
 4. Add automatic conversion logic

@@ -98,7 +98,7 @@ Returns the value of the specified sensor from the previous rule evaluation cycl
 Store one previous value per sensor:
 
 ```cpp
-struct LastSensorValues {
+struct LastValueTaggedUnions {
     float lastTemperature;
     float lastHumidity;
     float lastPhotoSensor;

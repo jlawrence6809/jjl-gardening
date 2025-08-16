@@ -18,13 +18,13 @@
  */
 
 /**
- * @struct SensorValue
+ * @struct ValueTaggedUnion
  * @brief Variant type for sensor values
  *
  * This structure can hold float, integer, or string values with automatic
  * type conversion to maintain compatibility with existing code.
  *
- * **IMPORTANT: String values are COPIED and owned by the SensorValue object.**
+ * **IMPORTANT: String values are COPIED and owned by the ValueTaggedUnion object.**
  * This prevents dangling pointer issues but uses more memory than pointer storage.
  * The std::string implementation uses Small String Optimization (SSO) for short
  * strings and heap allocation for longer ones.
@@ -36,15 +36,15 @@
  *
  * Usage examples:
  * ```cpp
- * SensorValue temp(25.5f);        // Float sensor
- * SensorValue count(42);          // Integer sensor
- * SensorValue status("connected"); // String sensor
+ * ValueTaggedUnion temp(25.5f);        // Float sensor
+ * ValueTaggedUnion count(42);          // Integer sensor
+ * ValueTaggedUnion status("connected"); // String sensor
  *
  * float tempVal = temp.asFloat(); // 25.5
  * bool isConnected = (status.asString() == std::string("connected"));
  * ```
  */
-struct SensorValue {
+struct ValueTaggedUnion {
     /**
      * @enum Type
      * @brief Enumeration of supported sensor value types
@@ -73,33 +73,33 @@ struct SensorValue {
     // Constructors for easy creation from different types
 
     /**
-     * @brief Construct SensorValue from float
+     * @brief Construct ValueTaggedUnion from float
      * @param val Float value to store
      */
-    SensorValue(float val) : type(FLOAT) { value.f = val; }
+    ValueTaggedUnion(float val) : type(FLOAT) { value.f = val; }
 
     /**
-     * @brief Construct SensorValue from integer
+     * @brief Construct ValueTaggedUnion from integer
      * @param val Integer value to store
      */
-    SensorValue(int val) : type(INT) { value.i = val; }
+    ValueTaggedUnion(int val) : type(INT) { value.i = val; }
 
     /**
-     * @brief Construct SensorValue from C string
+     * @brief Construct ValueTaggedUnion from C string
      * @param val C string to copy and store
      */
-    SensorValue(const char* val) : type(STRING) { new (&value.s) std::string(val ? val : ""); }
+    ValueTaggedUnion(const char* val) : type(STRING) { new (&value.s) std::string(val ? val : ""); }
 
     /**
-     * @brief Construct SensorValue from std::string
+     * @brief Construct ValueTaggedUnion from std::string
      * @param val String to copy and store
      */
-    SensorValue(const std::string& val) : type(STRING) { new (&value.s) std::string(val); }
+    ValueTaggedUnion(const std::string& val) : type(STRING) { new (&value.s) std::string(val); }
 
     /**
      * @brief Copy constructor
      */
-    SensorValue(const SensorValue& other) : type(other.type) {
+    ValueTaggedUnion(const ValueTaggedUnion& other) : type(other.type) {
         switch (type) {
             case FLOAT:
                 value.f = other.value.f;
@@ -116,7 +116,7 @@ struct SensorValue {
     /**
      * @brief Assignment operator
      */
-    SensorValue& operator=(const SensorValue& other) {
+    ValueTaggedUnion& operator=(const ValueTaggedUnion& other) {
         if (this != &other) {
             // Destroy current value if string
             if (type == STRING) {
@@ -142,7 +142,7 @@ struct SensorValue {
     /**
      * @brief Destructor - properly destroys std::string if needed
      */
-    ~SensorValue() {
+    ~ValueTaggedUnion() {
         if (type == STRING) {
             value.s.~basic_string();
         }
@@ -223,7 +223,7 @@ struct SensorValue {
      * @param other Value to compare against
      * @return true if values are equal (after type conversion)
      */
-    bool operator==(const SensorValue& other) const {
+    bool operator==(const ValueTaggedUnion& other) const {
         // If both are strings, compare as strings
         if (type == STRING && other.type == STRING) {
             return value.s == other.value.s;
@@ -237,21 +237,21 @@ struct SensorValue {
      * @param other Value to compare against
      * @return true if values are not equal
      */
-    bool operator!=(const SensorValue& other) const { return !(*this == other); }
+    bool operator!=(const ValueTaggedUnion& other) const { return !(*this == other); }
 
     /**
      * @brief Less-than comparison with automatic type conversion
      * @param other Value to compare against
      * @return true if this value is less than other (after conversion to float)
      */
-    bool operator<(const SensorValue& other) const { return asFloat() < other.asFloat(); }
+    bool operator<(const ValueTaggedUnion& other) const { return asFloat() < other.asFloat(); }
 
     /**
      * @brief Greater-than comparison with automatic type conversion
      * @param other Value to compare against
      * @return true if this value is greater than other (after conversion to float)
      */
-    bool operator>(const SensorValue& other) const { return asFloat() > other.asFloat(); }
+    bool operator>(const ValueTaggedUnion& other) const { return asFloat() > other.asFloat(); }
 
   private:
     /**
@@ -284,7 +284,7 @@ struct SensorValue {
      * Two-stage parsing approach:
      * 1. First try parsing as pure integer ("123" -> 123)
      * 2. If that fails, try parsing as float then truncate ("123.45" -> 123)
-     * This provides consistency: SensorValue(123.45f).asInt() == SensorValue("123.45").asInt()
+     * This provides consistency: ValueTaggedUnion(123.45f).asInt() == ValueTaggedUnion("123.45").asInt()
      */
     static int parseStringAsInt(const char* str) {
         if (!str) return 0;

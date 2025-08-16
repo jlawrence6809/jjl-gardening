@@ -212,9 +212,9 @@ RuleReturn processRuleCore(JsonVariantConst doc, const RuleCoreEnv &env) {
 
             // VALUE READING: Try to read value (sensors, computed values, etc.)
             if (env.tryReadValue) {
-                SensorValue val(0.0f);
+                ValueTaggedUnion val(0.0f);
                 if (env.tryReadValue(str, val)) {
-                    // Convert SensorValue to float for backward compatibility
+                    // Convert ValueTaggedUnion to float for backward compatibility
                     return createFloatRuleReturn(val.asFloat());
                 }
             }

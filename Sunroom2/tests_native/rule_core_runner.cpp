@@ -60,7 +60,7 @@ int main()
         DynamicJsonDocument doc(256);
         deserializeJson(doc, "[\"EQ\", true, true]");
         RuleCoreEnv env{};
-        env.tryReadValue = [](const std::string &, SensorValue &){ return false; };
+        env.tryReadValue = [](const std::string &, ValueTaggedUnion &){ return false; };
 
         auto r = processRuleCore(doc, env);
         check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "EQ true,true -> 1.0");
@@ -72,7 +72,7 @@ int main()
         DynamicJsonDocument doc(512);
         deserializeJson(doc, "[\"IF\", [\"GT\", \"temperature\", 20], [\"SET\", \"relay_0\", 1], [\"SET\", \"relay_0\", 0]]");
         RuleCoreEnv env{};
-        env.tryReadValue = [](const std::string &name, SensorValue &out){ if (name=="temperature"){ out=SensorValue(22.0f); return true;} return false; };
+        env.tryReadValue = [](const std::string &name, ValueTaggedUnion &out){ if (name=="temperature"){ out=ValueTaggedUnion(22.0f); return true;} return false; };
         env.tryGetActuator = [&](const std::string &name, std::function<void(float)> &setter){ if (name=="relay_0"){ setter = [&](float v){ last=v; }; return true;} return false; };
 
         auto r = processRuleCore(doc, env);
@@ -86,7 +86,7 @@ int main()
         auto eTop = deserializeJson(doc, "[\"AND\", [\"EQ\", true, true], [\"NOT\", [\"EQ\", true, false]]]");
         if (eTop) { log_error("deserialize AND(...): " + std::string(eTop.c_str())); failures++; }
         RuleCoreEnv env{};
-        env.tryReadValue = [](const std::string &, SensorValue &){ return false; };
+        env.tryReadValue = [](const std::string &, ValueTaggedUnion &){ return false; };
 
         // Debug sub-evals
         DynamicJsonDocument aDoc(512); deserializeJson(aDoc, "[\"EQ\", true, true]");
@@ -171,8 +171,8 @@ int main()
         DynamicJsonDocument doc(256);
         deserializeJson(doc, "[\"GT\", \"temperature\", 22.0]");
         RuleCoreEnv env{};
-        env.tryReadValue = [](const std::string &name, SensorValue &out){ 
-            if (name == "temperature") { out = SensorValue(25.3f); return true; } 
+        env.tryReadValue = [](const std::string &name, ValueTaggedUnion &out){ 
+            if (name == "temperature") { out = ValueTaggedUnion(25.3f); return true; } 
             return false; 
         };
         auto r = processRuleCore(doc, env);
@@ -184,8 +184,8 @@ int main()
         DynamicJsonDocument doc(256);
         deserializeJson(doc, "[\"GT\", \"currentTime\", \"@14:30:00\"]");
         RuleCoreEnv env{};
-        env.tryReadValue = [](const std::string &name, SensorValue &out) {
-            if (name == "currentTime") { out = SensorValue(15 * 3600 + 45 * 60); return true; } // 15:45:00
+        env.tryReadValue = [](const std::string &name, ValueTaggedUnion &out) {
+            if (name == "currentTime") { out = ValueTaggedUnion(15 * 3600 + 45 * 60); return true; } // 15:45:00
             return false;
         };
         auto r = processRuleCore(doc, env);
@@ -197,9 +197,9 @@ int main()
         DynamicJsonDocument doc(512);
         deserializeJson(doc, "[\"AND\", [\"GT\", \"temperature\", 20.0], [\"LT\", \"humidity\", 80.0]]");
         RuleCoreEnv env{};
-        env.tryReadValue = [](const std::string &name, SensorValue &out){ 
-            if (name == "temperature") { out = SensorValue(23.5f); return true; }
-            if (name == "humidity") { out = SensorValue(65.2f); return true; }
+        env.tryReadValue = [](const std::string &name, ValueTaggedUnion &out){ 
+            if (name == "temperature") { out = ValueTaggedUnion(23.5f); return true; }
+            if (name == "humidity") { out = ValueTaggedUnion(65.2f); return true; }
             return false; 
         };
         auto r = processRuleCore(doc, env);
@@ -211,9 +211,9 @@ int main()
         DynamicJsonDocument doc(512);
         deserializeJson(doc, "[\"OR\", [\"GT\", \"temperature\", 30.0], [\"LT\", \"humidity\", 80.0]]");
         RuleCoreEnv env{};
-        env.tryReadValue = [](const std::string &name, SensorValue &out){ 
-            if (name == "temperature") { out = SensorValue(23.5f); return true; }
-            if (name == "humidity") { out = SensorValue(65.2f); return true; }
+        env.tryReadValue = [](const std::string &name, ValueTaggedUnion &out){ 
+            if (name == "temperature") { out = ValueTaggedUnion(23.5f); return true; }
+            if (name == "humidity") { out = ValueTaggedUnion(65.2f); return true; }
             return false; 
         };
         auto r = processRuleCore(doc, env);
@@ -226,8 +226,8 @@ int main()
         DynamicJsonDocument doc(512);
         deserializeJson(doc, "[\"IF\", [\"GT\", \"temperature\", 25.0], [\"SET\", \"relay_0\", 1.0], [\"SET\", \"relay_0\", 0.0]]");
         RuleCoreEnv env{};
-        env.tryReadValue = [](const std::string &name, SensorValue &out){ 
-            if (name == "temperature") { out = SensorValue(22.0f); return true; }
+        env.tryReadValue = [](const std::string &name, ValueTaggedUnion &out){ 
+            if (name == "temperature") { out = ValueTaggedUnion(22.0f); return true; }
             return false; 
         };
         env.tryGetActuator = [&](const std::string &name, std::function<void(float)> &setter){ 
@@ -247,7 +247,7 @@ int main()
         DynamicJsonDocument doc(256);
         deserializeJson(doc, "[\"GT\", \"unknown_sensor\", 20.0]");
         RuleCoreEnv env{};
-        env.tryReadValue = [](const std::string &, SensorValue &){ return false; };
+        env.tryReadValue = [](const std::string &, ValueTaggedUnion &){ return false; };
         auto r = processRuleCore(doc, env);
         check(r.type == ERROR_TYPE && r.errorCode != 0, "GT(unknown_value, 20) returns error");
     }
@@ -415,8 +415,8 @@ int main()
             DynamicJsonDocument doc(256);
             deserializeJson(doc, "[\"GT\", \"currentTime\", \"@08:00:00\"]");
             RuleCoreEnv env{};
-            env.tryReadValue = [](const std::string &name, SensorValue &out) {
-                if (name == "currentTime") { out = SensorValue(10 * 3600 + 30 * 60); return true; } // 10:30:00
+            env.tryReadValue = [](const std::string &name, ValueTaggedUnion &out) {
+                if (name == "currentTime") { out = ValueTaggedUnion(10 * 3600 + 30 * 60); return true; } // 10:30:00
                 return false;
             };
             auto r = processRuleCore(doc, env);
@@ -437,9 +437,9 @@ int main()
         std::vector<ActuatorCall> actuatorCalls;
         
         RuleCoreEnv env{};
-                env.tryReadValue = [](const std::string &name, SensorValue &out){ 
-            if (name == "temperature") { out = SensorValue(25.0f); return true; }
-            if (name == "humidity") { out = SensorValue(60.0f); return true; }
+                env.tryReadValue = [](const std::string &name, ValueTaggedUnion &out){ 
+            if (name == "temperature") { out = ValueTaggedUnion(25.0f); return true; }
+            if (name == "humidity") { out = ValueTaggedUnion(60.0f); return true; }
             return false;
         };
         env.tryGetActuator = [&](const std::string &name, std::function<void(float)> &setter){
@@ -469,35 +469,35 @@ int main()
         check(foundLTResult, "processRuleSet: Rule 2 (LT) sets relay_2 to 1.0");
     }
 
-    // Test SensorValue variant system
-    log_info("Testing SensorValue variant system...");
+    // Test ValueTaggedUnion variant system
+    log_info("Testing ValueTaggedUnion variant system...");
     
     // Test 1: Basic type construction and conversion
     {
         log_debug("Test 1: Basic type construction and conversion");
         
-        SensorValue floatVal(25.5f);
-        SensorValue intVal(42);
-        SensorValue stringVal("connected");
+        ValueTaggedUnion floatVal(25.5f);
+        ValueTaggedUnion intVal(42);
+        ValueTaggedUnion stringVal("connected");
         
-        check(floatVal.asFloat() == 25.5f, "SensorValue float construction and conversion");
-        check(intVal.asInt() == 42, "SensorValue int construction and conversion");
-        check(std::string(stringVal.asString()) == "connected", "SensorValue string construction and conversion");
+        check(floatVal.asFloat() == 25.5f, "ValueTaggedUnion float construction and conversion");
+        check(intVal.asInt() == 42, "ValueTaggedUnion int construction and conversion");
+        check(std::string(stringVal.asString()) == "connected", "ValueTaggedUnion string construction and conversion");
         
         // Test explicit float conversion
         float explicitFloat = floatVal.asFloat();
-        check(explicitFloat == 25.5f, "SensorValue explicit float conversion");
+        check(explicitFloat == 25.5f, "ValueTaggedUnion explicit float conversion");
     }
     
     // Test 2: Cross-type conversions
     {
         log_debug("Test 2: Cross-type conversions");
         
-        SensorValue floatVal(25.5f);
-        SensorValue intVal(42);
-        SensorValue stringFloatVal("123.45");
-        SensorValue stringIntVal("456");
-        SensorValue badStringVal("not_a_number");
+        ValueTaggedUnion floatVal(25.5f);
+        ValueTaggedUnion intVal(42);
+        ValueTaggedUnion stringFloatVal("123.45");
+        ValueTaggedUnion stringIntVal("456");
+        ValueTaggedUnion badStringVal("not_a_number");
         
         // Float to int (should truncate)
         check(floatVal.asInt() == 25, "Float to int conversion (truncate)");
@@ -519,20 +519,20 @@ int main()
         check(stringFloatVal.asInt() == 123, "Float string '123.45' parses to int 123 (two-stage)");
         
         // Test strict parsing - should reject partial conversions
-        SensorValue partialFloat("123.45abc");
-        SensorValue partialInt("123abc");
-        SensorValue whitespaceFloat("123.45 ");
+        ValueTaggedUnion partialFloat("123.45abc");
+        ValueTaggedUnion partialInt("123abc");
+        ValueTaggedUnion whitespaceFloat("123.45 ");
         check(partialFloat.asFloat() == 0.0f, "Strict parsing rejects '123.45abc'");
         check(partialInt.asInt() == 0, "Strict parsing rejects '123abc'");
         check(whitespaceFloat.asFloat() == 0.0f, "Strict parsing rejects '123.45 '");
         
         // Test two-stage int parsing consistency 
-        SensorValue directFloat(25.7f);
-        SensorValue stringFloat("25.7");
-        SensorValue stringNegFloat("-3.8");
-        SensorValue stringZeroFloat("0.0");
+        ValueTaggedUnion directFloat(25.7f);
+        ValueTaggedUnion stringFloat("25.7");
+        ValueTaggedUnion stringNegFloat("-3.8");
+        ValueTaggedUnion stringZeroFloat("0.0");
         
-        check(directFloat.asInt() == stringFloat.asInt(), "Consistency: SensorValue(25.7f).asInt() == SensorValue(\"25.7\").asInt()");
+        check(directFloat.asInt() == stringFloat.asInt(), "Consistency: ValueTaggedUnion(25.7f).asInt() == ValueTaggedUnion(\"25.7\").asInt()");
         check(stringFloat.asInt() == 25, "Two-stage parsing: \"25.7\" -> int 25");
         check(stringNegFloat.asInt() == -3, "Two-stage parsing: \"-3.8\" -> int -3");
         check(stringZeroFloat.asInt() == 0, "Two-stage parsing: \"0.0\" -> int 0");
@@ -542,13 +542,13 @@ int main()
     {
         log_debug("Test 3: Comparison operators");
         
-        SensorValue float1(25.5f);
-        SensorValue float2(25.5f);
-        SensorValue float3(30.0f);
-        SensorValue int1(25);
-        SensorValue string1("connected");
-        SensorValue string2("connected");
-        SensorValue string3("disconnected");
+        ValueTaggedUnion float1(25.5f);
+        ValueTaggedUnion float2(25.5f);
+        ValueTaggedUnion float3(30.0f);
+        ValueTaggedUnion int1(25);
+        ValueTaggedUnion string1("connected");
+        ValueTaggedUnion string2("connected");
+        ValueTaggedUnion string3("disconnected");
         
         // Float equality
         check(float1 == float2, "Float equality (same value)");
@@ -572,14 +572,14 @@ int main()
         
         // Create environment with variant sensors
         RuleCoreEnv env{};
-        std::map<std::string, SensorValue> sensors = {
-            {"temperature", SensorValue(25.5f)},
-            {"count", SensorValue(42)},
-            {"status", SensorValue("online")},
-            {"error_code", SensorValue("404")} // String that can be parsed as number
+        std::map<std::string, ValueTaggedUnion> sensors = {
+            {"temperature", ValueTaggedUnion(25.5f)},
+            {"count", ValueTaggedUnion(42)},
+            {"status", ValueTaggedUnion("online")},
+            {"error_code", ValueTaggedUnion("404")} // String that can be parsed as number
         };
         
-        env.tryReadValue = [&sensors](const std::string &name, SensorValue &out) {
+        env.tryReadValue = [&sensors](const std::string &name, ValueTaggedUnion &out) {
             auto it = sensors.find(name);
             if (it != sensors.end()) {
                 out = it->second;

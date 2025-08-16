@@ -42,15 +42,15 @@ struct RuleCoreEnv {
      *
      * Example implementation:
      * ```cpp
-     * env.tryReadValue = [](const std::string &name, SensorValue &out) {
-     *     if (name == "temperature") { out = SensorValue(getTemperature()); return true; }
-     *     if (name == "humidity") { out = SensorValue(getHumidity()); return true; }
-     *     if (name == "status") { out = SensorValue("connected"); return true; }
+     * env.tryReadValue = [](const std::string &name, ValueTaggedUnion &out) {
+     *     if (name == "temperature") { out = ValueTaggedUnion(getTemperature()); return true; }
+     *     if (name == "humidity") { out = ValueTaggedUnion(getHumidity()); return true; }
+     *     if (name == "status") { out = ValueTaggedUnion("connected"); return true; }
      *     return false;
      * };
      * ```
      */
-    std::function<bool(const std::string &name, SensorValue &outVal)> tryReadValue;
+    std::function<bool(const std::string &name, ValueTaggedUnion &outVal)> tryReadValue;
 
     /**
      * @brief Actuator control callback

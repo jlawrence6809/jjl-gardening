@@ -126,25 +126,25 @@ void processAutomationDsl() {
 
     // Bridge to reusable, platform-neutral core evaluator
     RuleCoreEnv env{};
-    env.tryReadValue = [](const std::string &name, SensorValue &out) {
+    env.tryReadValue = [](const std::string &name, ValueTaggedUnion &out) {
         if (name == "temperature") {
-            out = SensorValue(getTemperature());
+            out = ValueTaggedUnion(getTemperature());
             return true;
         }
         if (name == "humidity") {
-            out = SensorValue(getHumidity());
+            out = ValueTaggedUnion(getHumidity());
             return true;
         }
         if (name == "photoSensor") {
-            out = SensorValue(getPhotoSensor());
+            out = ValueTaggedUnion(getPhotoSensor());
             return true;
         }
         if (name == "lightSwitch") {
-            out = SensorValue(getLightSwitch());
+            out = ValueTaggedUnion(getLightSwitch());
             return true;
         }
         if (name == "currentTime") {
-            out = SensorValue(getCurrentSeconds());
+            out = ValueTaggedUnion(getCurrentSeconds());
             return true;
         }
         return false;
