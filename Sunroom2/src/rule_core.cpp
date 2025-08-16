@@ -228,14 +228,7 @@ RuleReturn processRuleCore(JsonVariantConst doc, const RuleCoreEnv &env)
                 }
             }
 
-            // SPECIAL STRING: "currentTime" - get current time in seconds since midnight
-            if (str == std::string("currentTime"))
-            {
-                int secs = env.getCurrentSeconds ? env.getCurrentSeconds() : -1;
-                return secs < 0 ? createErrorRuleReturn(TIME_ERROR) : createIntRuleReturn(secs);
-            }
-
-            // UNKNOWN STRING: Not a time literal, value, actuator, or special string
+            // UNKNOWN STRING: Not a time literal, value, or actuator
             return createErrorRuleReturn(UNREC_STR_ERROR);
         }
         // BOOLEAN LITERAL: true/false converted to 1.0/0.0

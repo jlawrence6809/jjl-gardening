@@ -74,15 +74,7 @@ struct RuleCoreEnv {
      */
     std::function<bool(const std::string &name, std::function<void(float)> &outSetter)> tryGetActuator;
     
-    /**
-     * @brief Current time provider callback
-     * @return Current time in seconds since midnight (0-86399), or -1 on error
-     * 
-     * Used by rules that reference "currentTime" or compare against time literals.
-     * 
-     * Example: If current time is 14:30:45, this should return (14*3600 + 30*60 + 45) = 52245
-     */
-    std::function<int()> getCurrentSeconds;
+
     
 
 };

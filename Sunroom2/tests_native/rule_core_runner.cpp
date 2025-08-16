@@ -61,7 +61,7 @@ int main()
         deserializeJson(doc, "[\"EQ\", true, true]");
         RuleCoreEnv env{};
         env.tryReadValue = [](const std::string &, SensorValue &){ return false; };
-        env.getCurrentSeconds = [](){ return 0; };
+
         auto r = processRuleCore(doc, env);
         check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "EQ true,true -> 1.0");
     }
@@ -74,7 +74,7 @@ int main()
         RuleCoreEnv env{};
         env.tryReadValue = [](const std::string &name, SensorValue &out){ if (name=="temperature"){ out=SensorValue(22.0f); return true;} return false; };
         env.tryGetActuator = [&](const std::string &name, std::function<void(float)> &setter){ if (name=="relay_0"){ setter = [&](float v){ last=v; }; return true;} return false; };
-        env.getCurrentSeconds = [](){ return 0; };
+
         auto r = processRuleCore(doc, env);
         (void)r;
         check(std::abs(last - 1.0f) < 0.001f, "IF-SET with temperature sensor sets relay to 1");
@@ -87,7 +87,7 @@ int main()
         if (eTop) { log_error("deserialize AND(...): " + std::string(eTop.c_str())); failures++; }
         RuleCoreEnv env{};
         env.tryReadValue = [](const std::string &, SensorValue &){ return false; };
-        env.getCurrentSeconds = [](){ return 0; };
+
         // Debug sub-evals
         DynamicJsonDocument aDoc(512); deserializeJson(aDoc, "[\"EQ\", true, true]");
         DynamicJsonDocument bDoc(512); deserializeJson(bDoc, "[\"EQ\", true, false]");
@@ -184,8 +184,10 @@ int main()
         DynamicJsonDocument doc(256);
         deserializeJson(doc, "[\"GT\", \"currentTime\", \"@14:30:00\"]");
         RuleCoreEnv env{};
-        env.getCurrentSeconds = [](){ return 15 * 3600 + 45 * 60; }; // 15:45:00
-        // Note: parseTimeLiteral is now handled internally by the rule engine
+        env.tryReadValue = [](const std::string &name, SensorValue &out) {
+            if (name == "currentTime") { out = SensorValue(15 * 3600 + 45 * 60); return true; } // 15:45:00
+            return false;
+        };
         auto r = processRuleCore(doc, env);
         check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "GT(currentTime=15:45, @14:30:00) => 1.0");
     }
@@ -413,7 +415,10 @@ int main()
             DynamicJsonDocument doc(256);
             deserializeJson(doc, "[\"GT\", \"currentTime\", \"@08:00:00\"]");
             RuleCoreEnv env{};
-            env.getCurrentSeconds = [](){ return 10 * 3600 + 30 * 60; }; // 10:30:00
+            env.tryReadValue = [](const std::string &name, SensorValue &out) {
+                if (name == "currentTime") { out = SensorValue(10 * 3600 + 30 * 60); return true; } // 10:30:00
+                return false;
+            };
             auto r = processRuleCore(doc, env);
             check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "GT(currentTime=10:30, @08:00:00) => 1.0");
         }

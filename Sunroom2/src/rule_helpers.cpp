@@ -145,6 +145,7 @@ void processRelayRules()
         if (name == "humidity") { out = SensorValue(getHumidity()); return true; }
         if (name == "photoSensor") { out = SensorValue(getPhotoSensor()); return true; }
         if (name == "lightSwitch") { out = SensorValue(getLightSwitch()); return true; }
+        if (name == "currentTime") { out = SensorValue(getCurrentSeconds()); return true; }
         return false;
     };
     // Set up actuator lookup function for rule processing system
@@ -163,7 +164,7 @@ void processRelayRules()
         // Return false if name doesn't match "relay_" pattern (actuator not found)
         return false;
     };
-    env.getCurrentSeconds = [](){ return getCurrentSeconds(); };
+
 
     // Convert Arduino String array to std::string array for platform-neutral core
     std::string stdRules[RUNTIME_RELAY_COUNT];
