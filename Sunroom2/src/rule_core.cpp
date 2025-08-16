@@ -21,6 +21,7 @@
 #include "rule_core.h"
 #include <string>
 #include <cstring>
+#include "sensor_value.h"
 
 /**
  * @brief Create a RuleReturn structure with specified parameters
@@ -219,10 +220,11 @@ RuleReturn processRuleCore(JsonVariantConst doc, const RuleCoreEnv &env)
             // SENSOR READING: Try to read sensor value
             if (env.tryReadSensor)
             {
-                float val = 0.0f;
+                SensorValue val(0.0f);
                 if (env.tryReadSensor(str, val))
                 {
-                    return createFloatRuleReturn(val);
+                    // Convert SensorValue to float for backward compatibility
+                    return createFloatRuleReturn(val.asFloat());
                 }
             }
 

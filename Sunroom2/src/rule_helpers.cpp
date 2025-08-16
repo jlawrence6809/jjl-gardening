@@ -7,6 +7,7 @@
 #include <map>
 #include <functional>
 #include "rule_core.h"
+#include "sensor_value.h"
 
 /**
  * This file contains the logic for processing the relay rules
@@ -139,11 +140,11 @@ void processRelayRules()
 
     // Bridge to reusable, platform-neutral core evaluator
     RuleCoreEnv env{};
-    env.tryReadSensor = [](const std::string &name, float &out) {
-        if (name == "temperature") { out = getTemperature(); return true; }
-        if (name == "humidity") { out = getHumidity(); return true; }
-        if (name == "photoSensor") { out = getPhotoSensor(); return true; }
-        if (name == "lightSwitch") { out = getLightSwitch(); return true; }
+    env.tryReadSensor = [](const std::string &name, SensorValue &out) {
+        if (name == "temperature") { out = SensorValue(getTemperature()); return true; }
+        if (name == "humidity") { out = SensorValue(getHumidity()); return true; }
+        if (name == "photoSensor") { out = SensorValue(getPhotoSensor()); return true; }
+        if (name == "lightSwitch") { out = SensorValue(getLightSwitch()); return true; }
         return false;
     };
     // Set up actuator lookup function for rule processing system

@@ -5,6 +5,7 @@
 #include <string>
 
 #include "rule_helpers.h" // Reuse TypeCode, ErrorCode, RuleReturn
+#include "sensor_value.h" // Variant type for sensor values
 
 /**
  * @file rule_core.h
@@ -41,14 +42,15 @@ struct RuleCoreEnv {
      * 
      * Example implementation:
      * ```cpp
-     * env.tryReadSensor = [](const std::string &name, float &out) {
-     *     if (name == "temperature") { out = getTemperature(); return true; }
-     *     if (name == "humidity") { out = getHumidity(); return true; }
+     * env.tryReadSensor = [](const std::string &name, SensorValue &out) {
+     *     if (name == "temperature") { out = SensorValue(getTemperature()); return true; }
+     *     if (name == "humidity") { out = SensorValue(getHumidity()); return true; }
+     *     if (name == "status") { out = SensorValue("connected"); return true; }
      *     return false;
      * };
      * ```
      */
-    std::function<bool(const std::string &name, float &outVal)> tryReadSensor;
+    std::function<bool(const std::string &name, SensorValue &outVal)> tryReadSensor;
     
     /**
      * @brief Actuator control callback
