@@ -34,4 +34,4 @@ struct RuleReturn
     std::function<void(float)> actuatorSetter;
 };
 
-void processRelayRules();
+void processAutomationDsl();

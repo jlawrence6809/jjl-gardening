@@ -130,7 +130,7 @@ void printRuleReturn(RuleReturn result)
 /**
  * Process the relay rules
  */
-void processRelayRules()
+void processAutomationDsl()
 {
     // // setup some test values
     // CURRENT_TEMPERATURE = 25.0;

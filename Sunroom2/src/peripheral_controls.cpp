@@ -6,8 +6,8 @@
 #include <ArduinoJson.h>
 #include "automation_dsl/types.h"
 
-// Forward declaration of processRelayRules from automation_dsl/bridge.cpp
-void processRelayRules();
+// Forward declaration of processAutomationDsl from automation_dsl/bridge.cpp
+void processAutomationDsl();
 
 static Timer timer(1010);
 
@@ -136,5 +136,5 @@ void controlPeripheralsLoop()
     }
 
     // Process the rules
-    processRelayRules();
+    processAutomationDsl();
 }

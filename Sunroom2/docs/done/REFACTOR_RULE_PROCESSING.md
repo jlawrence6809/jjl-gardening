@@ -6,7 +6,7 @@ Move generic rule processing logic from `rule_helpers.cpp` to `rule_core.cpp` fo
 
 ## Current State
 
-`processRelayRules()` in `rule_helpers.cpp` contains both:
+`processAutomationDsl()` in `rule_helpers.cpp` contains both:
 
 - **Application-specific code**: Arduino sensor getters, relay setters, environment setup
 - **Generic rule processing**: JSON parsing, rule iteration, result handling
@@ -26,7 +26,7 @@ void processRuleSet(
 
 ### Logic to Move
 
-From `processRelayRules()` to the new `processRuleSet()`:
+From `processAutomationDsl()` to the new `processRuleSet()`:
 
 1. **Rule iteration loop** (lines 149-212)
 2. **JSON deserialization** (lines 158-166)

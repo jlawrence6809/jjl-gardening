@@ -58,7 +58,7 @@ void setRelays(AsyncWebServerRequest *request)
         }
     }
 
-    processRelayRules();
+    processAutomationDsl();
     writeRelayValues();
     getRelays(request);
 }
@@ -222,7 +222,7 @@ void setRule(AsyncWebServerRequest *request)
     String rules = request->getParam("v", POST_PARAM)->value();
     RELAY_RULES[relay] = rules;
     writeRelayRules();
-    processRelayRules();
+    processAutomationDsl();
     request->send(200, JSON_CONTENT_TYPE, buildJson({{"v", RELAY_RULES[relay]}}));
 }
 
