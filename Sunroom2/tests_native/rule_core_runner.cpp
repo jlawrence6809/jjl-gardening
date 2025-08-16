@@ -510,8 +510,8 @@ int main()
         check(stringIntVal.asInt() == 456, "String to int conversion");
         check(badStringVal.asInt() == 0, "Bad string to int conversion");
         
-        // Float strings should fail to parse as int with strict parsing
-        check(stringFloatVal.asInt() == 0, "Float string '123.45' fails int parsing (strict)");
+        // Float strings should parse and truncate with two-stage parsing
+        check(stringFloatVal.asInt() == 123, "Float string '123.45' parses to int 123 (two-stage)");
         
         // Test strict parsing - should reject partial conversions
         SensorValue partialFloat("123.45abc");
@@ -520,6 +520,17 @@ int main()
         check(partialFloat.asFloat() == 0.0f, "Strict parsing rejects '123.45abc'");
         check(partialInt.asInt() == 0, "Strict parsing rejects '123abc'");
         check(whitespaceFloat.asFloat() == 0.0f, "Strict parsing rejects '123.45 '");
+        
+        // Test two-stage int parsing consistency 
+        SensorValue directFloat(25.7f);
+        SensorValue stringFloat("25.7");
+        SensorValue stringNegFloat("-3.8");
+        SensorValue stringZeroFloat("0.0");
+        
+        check(directFloat.asInt() == stringFloat.asInt(), "Consistency: SensorValue(25.7f).asInt() == SensorValue(\"25.7\").asInt()");
+        check(stringFloat.asInt() == 25, "Two-stage parsing: \"25.7\" -> int 25");
+        check(stringNegFloat.asInt() == -3, "Two-stage parsing: \"-3.8\" -> int -3");
+        check(stringZeroFloat.asInt() == 0, "Two-stage parsing: \"0.0\" -> int 0");
     }
     
     // Test 3: Comparison operators

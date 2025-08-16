@@ -281,25 +281,52 @@ private:
     }
     
     /**
-     * @brief Parse string as integer value with strict validation
+     * @brief Parse string as integer value with two-stage parsing
      * @param str C string to parse
      * @return Parsed integer value, or 0 if parsing fails
      * 
-     * Uses strict parsing: entire string must be a valid integer.
-     * Rejects partial conversions like "123abc" or "123 extra".
+     * Two-stage parsing approach:
+     * 1. First try parsing as pure integer ("123" -> 123)
+     * 2. If that fails, try parsing as float then truncate ("123.45" -> 123)
+     * This provides consistency: SensorValue(123.45f).asInt() == SensorValue("123.45").asInt()
      */
     static int parseStringAsInt(const char* str) {
         if (!str) return 0;
         
+        // Stage 1: Try parsing as pure integer
         char* endPtr;
         long result = strtol(str, &endPtr, 10);
         
-        // Strict validation: entire string must convert successfully
-        if (endPtr == str || *endPtr != '\0' || result > INT_MAX || result < INT_MIN) {
-            return 0; // No conversion, partial conversion, or out of range
+        if (endPtr != str && *endPtr == '\0' && result <= INT_MAX && result >= INT_MIN) {
+            // Successfully parsed as pure integer
+            return static_cast<int>(result);
         }
         
-        return static_cast<int>(result);
+        // Stage 2: Try parsing as float, then truncate
+        float floatResult = parseStringAsFloat(str);
+        
+        // Check if float parsing succeeded (non-zero result or valid zero)
+        if (floatResult != 0.0f || isValidZeroFloat(str)) {
+            return static_cast<int>(floatResult);
+        }
+        
+        // Both parsing attempts failed
+        return 0;
+    }
+    
+    /**
+     * @brief Check if string represents a valid zero float
+     * @param str C string to check
+     * @return true if string is "0", "0.0", "0.00", etc.
+     */
+    static bool isValidZeroFloat(const char* str) {
+        if (!str) return false;
+        
+        // Use parseStringAsFloat's validation - if it succeeds and returns 0.0,
+        // and the original parseStringAsFloat logic would have succeeded, then it's valid
+        char* endPtr;
+        strtof(str, &endPtr);
+        return (endPtr != str && *endPtr == '\0');
     }
     
     /**
