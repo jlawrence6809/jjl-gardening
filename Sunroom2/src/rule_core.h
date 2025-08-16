@@ -26,7 +26,8 @@
  * - Read sensor values from the physical environment
  * - Control actuators in the physical environment  
  * - Get current time information
- * - Parse time literals in "@HH:MM:SS" format
+ * 
+ * Time literal parsing ("@HH:MM:SS" format) is handled internally by the rule engine.
  * 
  * The callbacks make the rule engine platform-neutral - it can work on Arduino/ESP32,
  * native systems, or in unit tests by providing appropriate implementations.
@@ -81,16 +82,7 @@ struct RuleCoreEnv {
      */
     std::function<int()> getCurrentSeconds;
     
-    /**
-     * @brief Time literal parser callback
-     * @param hhmmss Time string in "@HH:MM:SS" format (e.g., "@14:30:00")
-     * @return Time in seconds since midnight, or -1 if parsing failed
-     * 
-     * Used to parse time literals in rules like ["GT", "currentTime", "@18:00:00"]
-     * 
-     * Example: "@14:30:00" should return (14*3600 + 30*60 + 0) = 52200
-     */
-    std::function<int(const std::string &hhmmss)> parseTimeLiteral;
+
 };
 
 /**

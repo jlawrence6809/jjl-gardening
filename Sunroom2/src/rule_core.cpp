@@ -119,6 +119,55 @@ static RuleReturn createBoolRuleReturn(bool b) {
 static bool jsonIsTimeLiteral(const std::string &s) { return !s.empty() && s[0] == '@'; }
 
 /**
+ * @brief Parse time literal string to seconds since midnight
+ * @param timeStr Time string in "@HH:MM:SS" format (e.g., "@14:30:00")
+ * @return Time in seconds since midnight, or -1 if parsing failed
+ * 
+ * Platform-neutral implementation that only uses standard C++ libraries.
+ * Used to parse time literals in rules like ["GT", "currentTime", "@18:00:00"]
+ * 
+ * Examples:
+ * - "@14:30:00" returns (14*3600 + 30*60 + 0) = 52200
+ * - "@23:59:59" returns (23*3600 + 59*60 + 59) = 86399
+ * - "@00:00:00" returns 0
+ * - Invalid formats return -1
+ */
+static int parseTimeLiteral(const std::string &timeStr) {
+    // Check minimum length: "@HH:MM:SS" = 9 characters
+    if (timeStr.length() != 9) {
+        return -1;
+    }
+    
+    // Check format: must start with '@' and have colons at positions 3 and 6
+    if (timeStr[0] != '@' || timeStr[3] != ':' || timeStr[6] != ':') {
+        return -1;
+    }
+    
+    // Extract and validate hour, minute, second strings
+    std::string hourStr = timeStr.substr(1, 2);
+    std::string minuteStr = timeStr.substr(4, 2);
+    std::string secondStr = timeStr.substr(7, 2);
+    
+    // Check that all characters are digits
+    for (char c : hourStr) if (c < '0' || c > '9') return -1;
+    for (char c : minuteStr) if (c < '0' || c > '9') return -1;
+    for (char c : secondStr) if (c < '0' || c > '9') return -1;
+    
+    // Convert to integers
+    int hours = std::stoi(hourStr);
+    int minutes = std::stoi(minuteStr);
+    int seconds = std::stoi(secondStr);
+    
+    // Validate ranges
+    if (hours < 0 || hours > 23) return -1;
+    if (minutes < 0 || minutes > 59) return -1;
+    if (seconds < 0 || seconds > 59) return -1;
+    
+    // Convert to seconds since midnight
+    return (hours * 3600) + (minutes * 60) + seconds;
+}
+
+/**
  * @brief Core recursive rule processing function
  * 
  * This function processes JSON expressions in LISP-like syntax. It handles both
@@ -150,7 +199,7 @@ RuleReturn processRuleCore(JsonVariantConst doc, const RuleCoreEnv &env)
             // TIME LITERAL: "@HH:MM:SS" format
             if (jsonIsTimeLiteral(str))
             {
-                int secs = env.parseTimeLiteral ? env.parseTimeLiteral(str) : -1;
+                int secs = parseTimeLiteral(str);
                 return secs < 0 ? createErrorRuleReturn(TIME_ERROR) : createIntRuleReturn(secs);
             }
 

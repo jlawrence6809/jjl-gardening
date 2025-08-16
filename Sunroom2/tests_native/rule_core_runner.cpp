@@ -60,7 +60,6 @@ int main()
         RuleCoreEnv env{};
         env.tryReadSensor = [](const std::string &, float &){ return false; };
         env.getCurrentSeconds = [](){ return 0; };
-        env.parseTimeLiteral = [](const std::string &){ return -1; };
         auto r = processRuleCore(doc, env);
         check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "EQ true,true -> 1.0");
     }
@@ -74,7 +73,6 @@ int main()
         env.tryReadSensor = [](const std::string &name, float &out){ if (name=="temperature"){ out=22.0f; return true;} return false; };
         env.tryGetActuator = [&](const std::string &name, std::function<void(float)> &setter){ if (name=="relay_0"){ setter = [&](float v){ last=v; }; return true;} return false; };
         env.getCurrentSeconds = [](){ return 0; };
-        env.parseTimeLiteral = [](const std::string &){ return -1; };
         auto r = processRuleCore(doc, env);
         (void)r;
         check(std::abs(last - 1.0f) < 0.001f, "IF-SET with temperature sensor sets relay to 1");
@@ -88,7 +86,6 @@ int main()
         RuleCoreEnv env{};
         env.tryReadSensor = [](const std::string &, float &){ return false; };
         env.getCurrentSeconds = [](){ return 0; };
-        env.parseTimeLiteral = [](const std::string &){ return -1; };
         // Debug sub-evals
         DynamicJsonDocument aDoc(512); deserializeJson(aDoc, "[\"EQ\", true, true]");
         DynamicJsonDocument bDoc(512); deserializeJson(bDoc, "[\"EQ\", true, false]");
@@ -186,10 +183,7 @@ int main()
         deserializeJson(doc, "[\"GT\", \"currentTime\", \"@14:30:00\"]");
         RuleCoreEnv env{};
         env.getCurrentSeconds = [](){ return 15 * 3600 + 45 * 60; }; // 15:45:00
-        env.parseTimeLiteral = [](const std::string &timeStr){ 
-            if (timeStr == "@14:30:00") return 14 * 3600 + 30 * 60; // 14:30:00
-            return -1;
-        };
+        // Note: parseTimeLiteral is now handled internally by the rule engine
         auto r = processRuleCore(doc, env);
         check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "GT(currentTime=15:45, @14:30:00) => 1.0");
     }
@@ -254,7 +248,176 @@ int main()
         check(r.type == ERROR_TYPE && r.errorCode != 0, "GT(unknown_sensor, 20) returns error");
     }
 
-    // Test 17: processRuleSet with multiple rules using unified actuator system
+    // Test 17: Time literal parsing - valid cases
+    {
+        log_info("Testing time literal parsing - valid cases");
+        
+        // Test 17a: "@00:00:00" => 0
+        {
+            DynamicJsonDocument doc(128);
+            deserializeJson(doc, "\"@00:00:00\"");
+            RuleCoreEnv env{};
+            auto r = processRuleCore(doc, env);
+            check(r.type == FLOAT_TYPE && std::abs(r.val - 0.0f) < 0.001f, "Time literal @00:00:00 => 0");
+        }
+        
+        // Test 17b: "@14:30:00" => 52200 (14*3600 + 30*60 + 0)
+        {
+            DynamicJsonDocument doc(128);
+            deserializeJson(doc, "\"@14:30:00\"");
+            RuleCoreEnv env{};
+            auto r = processRuleCore(doc, env);
+            check(r.type == FLOAT_TYPE && std::abs(r.val - 52200.0f) < 0.001f, "Time literal @14:30:00 => 52200");
+        }
+        
+        // Test 17c: "@23:59:59" => 86399 (23*3600 + 59*60 + 59)
+        {
+            DynamicJsonDocument doc(128);
+            deserializeJson(doc, "\"@23:59:59\"");
+            RuleCoreEnv env{};
+            auto r = processRuleCore(doc, env);
+            check(r.type == FLOAT_TYPE && std::abs(r.val - 86399.0f) < 0.001f, "Time literal @23:59:59 => 86399");
+        }
+        
+        // Test 17d: "@12:00:00" => 43200 (12*3600)
+        {
+            DynamicJsonDocument doc(128);
+            deserializeJson(doc, "\"@12:00:00\"");
+            RuleCoreEnv env{};
+            auto r = processRuleCore(doc, env);
+            check(r.type == FLOAT_TYPE && std::abs(r.val - 43200.0f) < 0.001f, "Time literal @12:00:00 => 43200");
+        }
+        
+        // Test 17e: "@01:01:01" => 3661 (1*3600 + 1*60 + 1)
+        {
+            DynamicJsonDocument doc(128);
+            deserializeJson(doc, "\"@01:01:01\"");
+            RuleCoreEnv env{};
+            auto r = processRuleCore(doc, env);
+            check(r.type == FLOAT_TYPE && std::abs(r.val - 3661.0f) < 0.001f, "Time literal @01:01:01 => 3661");
+        }
+    }
+
+    // Test 18: Time literal parsing - invalid cases
+    {
+        log_info("Testing time literal parsing - invalid cases");
+        
+        // Test 18a: Wrong length (too short)
+        {
+            DynamicJsonDocument doc(128);
+            deserializeJson(doc, "\"@14:30\"");
+            RuleCoreEnv env{};
+            auto r = processRuleCore(doc, env);
+            check(r.type == ERROR_TYPE && r.errorCode == TIME_ERROR, "Invalid time @14:30 => TIME_ERROR");
+        }
+        
+        // Test 18b: Wrong length (too long)
+        {
+            DynamicJsonDocument doc(128);
+            deserializeJson(doc, "\"@14:30:000\"");
+            RuleCoreEnv env{};
+            auto r = processRuleCore(doc, env);
+            check(r.type == ERROR_TYPE && r.errorCode == TIME_ERROR, "Invalid time @14:30:000 => TIME_ERROR");
+        }
+        
+        // Test 18c: Missing @ prefix
+        {
+            DynamicJsonDocument doc(128);
+            deserializeJson(doc, "\"14:30:00\"");
+            RuleCoreEnv env{};
+            auto r = processRuleCore(doc, env);
+            check(r.type == ERROR_TYPE && r.errorCode == UNREC_STR_ERROR, "Invalid time 14:30:00 => UNREC_STR_ERROR");
+        }
+        
+        // Test 18d: Wrong colon positions
+        {
+            DynamicJsonDocument doc(128);
+            deserializeJson(doc, "\"@14-30-00\"");
+            RuleCoreEnv env{};
+            auto r = processRuleCore(doc, env);
+            check(r.type == ERROR_TYPE && r.errorCode == TIME_ERROR, "Invalid time @14-30-00 => TIME_ERROR");
+        }
+        
+        // Test 18e: Non-digit characters
+        {
+            DynamicJsonDocument doc(128);
+            deserializeJson(doc, "\"@1a:30:00\"");
+            RuleCoreEnv env{};
+            auto r = processRuleCore(doc, env);
+            check(r.type == ERROR_TYPE && r.errorCode == TIME_ERROR, "Invalid time @1a:30:00 => TIME_ERROR");
+        }
+        
+        // Test 18f: Invalid hour (>23)
+        {
+            DynamicJsonDocument doc(128);
+            deserializeJson(doc, "\"@25:30:00\"");
+            RuleCoreEnv env{};
+            auto r = processRuleCore(doc, env);
+            check(r.type == ERROR_TYPE && r.errorCode == TIME_ERROR, "Invalid time @25:30:00 => TIME_ERROR");
+        }
+        
+        // Test 18g: Invalid minute (>59)
+        {
+            DynamicJsonDocument doc(128);
+            deserializeJson(doc, "\"@14:70:00\"");
+            RuleCoreEnv env{};
+            auto r = processRuleCore(doc, env);
+            check(r.type == ERROR_TYPE && r.errorCode == TIME_ERROR, "Invalid time @14:70:00 => TIME_ERROR");
+        }
+        
+        // Test 18h: Invalid second (>59)
+        {
+            DynamicJsonDocument doc(128);
+            deserializeJson(doc, "\"@14:30:70\"");
+            RuleCoreEnv env{};
+            auto r = processRuleCore(doc, env);
+            check(r.type == ERROR_TYPE && r.errorCode == TIME_ERROR, "Invalid time @14:30:70 => TIME_ERROR");
+        }
+    }
+
+    // Test 19: Time comparisons using parsed literals
+    {
+        log_info("Testing time comparisons with literals");
+        
+        // Test 19a: GT comparison with time literals
+        {
+            DynamicJsonDocument doc(256);
+            deserializeJson(doc, "[\"GT\", \"@15:30:00\", \"@14:30:00\"]");
+            RuleCoreEnv env{};
+            auto r = processRuleCore(doc, env);
+            check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "GT(@15:30:00, @14:30:00) => 1.0");
+        }
+        
+        // Test 19b: LT comparison with time literals
+        {
+            DynamicJsonDocument doc(256);
+            deserializeJson(doc, "[\"LT\", \"@12:00:00\", \"@18:00:00\"]");
+            RuleCoreEnv env{};
+            auto r = processRuleCore(doc, env);
+            check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "LT(@12:00:00, @18:00:00) => 1.0");
+        }
+        
+        // Test 19c: EQ comparison with identical time literals
+        {
+            DynamicJsonDocument doc(256);
+            deserializeJson(doc, "[\"EQ\", \"@12:00:00\", \"@12:00:00\"]");
+            RuleCoreEnv env{};
+            auto r = processRuleCore(doc, env);
+            check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "EQ(@12:00:00, @12:00:00) => 1.0");
+        }
+        
+        // Test 19d: Compare currentTime with time literal
+        {
+            DynamicJsonDocument doc(256);
+            deserializeJson(doc, "[\"GT\", \"currentTime\", \"@08:00:00\"]");
+            RuleCoreEnv env{};
+            env.getCurrentSeconds = [](){ return 10 * 3600 + 30 * 60; }; // 10:30:00
+            auto r = processRuleCore(doc, env);
+            check(r.type == FLOAT_TYPE && std::abs(r.val - 1.0f) < 0.001f, "GT(currentTime=10:30, @08:00:00) => 1.0");
+        }
+    }
+
+    // Test 20: processRuleSet with multiple rules using unified actuator system
     {
         std::string rules[] = {
             "[\"GT\", \"temperature\", 20]",

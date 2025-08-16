@@ -98,16 +98,7 @@ std::function<void(float)> getActuatorSetter(String name)
     return 0;
 }
 
-/**
- * Convert @HH:MM:SS to seconds
- */
-int mintuesFromHHMMSS(String hhmm)
-{
-    int hours = hhmm.substring(1, 3).toInt();
-    int minutes = hhmm.substring(4, 6).toInt();
-    int seconds = hhmm.substring(7, 9).toInt();
-    return (hours * 60 * 60) + (minutes * 60) + seconds;
-}
+
 
 /**
  * Get the current time in minutes
@@ -172,7 +163,6 @@ void processRelayRules()
         return false;
     };
     env.getCurrentSeconds = [](){ return getCurrentSeconds(); };
-    env.parseTimeLiteral = [](const std::string &hhmm){ return mintuesFromHHMMSS(String(hhmm.c_str())); };
 
     // Convert Arduino String array to std::string array for platform-neutral core
     std::string stdRules[RUNTIME_RELAY_COUNT];
