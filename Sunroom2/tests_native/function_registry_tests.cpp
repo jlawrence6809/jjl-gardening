@@ -7,7 +7,7 @@
 #include <ArduinoJson.h>
 #include <gtest/gtest.h>
 #include "../src/automation_dsl/bridge_functions.h"
-#include "../src/automation_dsl/new_core.h"
+#include "../src/automation_dsl/core.h"
 #include "../src/automation_dsl/registry_functions.h"
 #include "test_mocks.h"
 
@@ -34,23 +34,23 @@ class FunctionRegistryTest : public ::testing::Test {
 
     // Helper function to register test sensor functions
     static void registerTestSensorFunctions(FunctionRegistry& registry) {
-        registry["getTemperature"] = [](JsonArrayConst args, const NewRuleCoreEnv& env) {
+        registry["getTemperature"] = [](JsonArrayConst args, const RuleCoreEnv& env) {
             return UnifiedValue(CURRENT_TEMPERATURE);
         };
 
-        registry["getHumidity"] = [](JsonArrayConst args, const NewRuleCoreEnv& env) {
+        registry["getHumidity"] = [](JsonArrayConst args, const RuleCoreEnv& env) {
             return UnifiedValue(CURRENT_HUMIDITY);
         };
 
-        registry["getPhotoSensor"] = [](JsonArrayConst args, const NewRuleCoreEnv& env) {
+        registry["getPhotoSensor"] = [](JsonArrayConst args, const RuleCoreEnv& env) {
             return UnifiedValue(LIGHT_LEVEL);
         };
 
-        registry["getLightSwitch"] = [](JsonArrayConst args, const NewRuleCoreEnv& env) {
+        registry["getLightSwitch"] = [](JsonArrayConst args, const RuleCoreEnv& env) {
             return UnifiedValue(static_cast<float>(IS_SWITCH_ON));
         };
 
-        registry["getCurrentTime"] = [](JsonArrayConst args, const NewRuleCoreEnv& env) {
+        registry["getCurrentTime"] = [](JsonArrayConst args, const RuleCoreEnv& env) {
             return UnifiedValue(43200.0f);  // 12:00:00 noon
         };
     }
@@ -62,10 +62,10 @@ class FunctionRegistryTest : public ::testing::Test {
         if (error) {
             return UnifiedValue::createError(UNREC_FUNC_ERROR);
         }
-        return processNewRuleCore(doc.as<JsonVariantConst>(), env);
+        return processRuleCore(doc.as<JsonVariantConst>(), env);
     }
 
-    NewRuleCoreEnv env;
+    RuleCoreEnv env;
 };
 
 // Test 1: Basic sensor reading

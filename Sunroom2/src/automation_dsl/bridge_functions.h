@@ -1,6 +1,6 @@
 #pragma once
 
-#include "new_core.h"
+#include "core.h"
 
 /**
  * @file bridge_functions.h
@@ -28,11 +28,11 @@ void registerBridgeFunctions(FunctionRegistry& registry);
 namespace BridgeFunctions {
 
 // Sensor reading functions
-UnifiedValue functionGetTemperature(JsonArrayConst args, const NewRuleCoreEnv& env);
-UnifiedValue functionGetHumidity(JsonArrayConst args, const NewRuleCoreEnv& env);
-UnifiedValue functionGetPhotoSensor(JsonArrayConst args, const NewRuleCoreEnv& env);
-UnifiedValue functionGetLightSwitch(JsonArrayConst args, const NewRuleCoreEnv& env);
-UnifiedValue functionGetCurrentTime(JsonArrayConst args, const NewRuleCoreEnv& env);
+UnifiedValue functionGetTemperature(JsonArrayConst args, const RuleCoreEnv& env);
+UnifiedValue functionGetHumidity(JsonArrayConst args, const RuleCoreEnv& env);
+UnifiedValue functionGetPhotoSensor(JsonArrayConst args, const RuleCoreEnv& env);
+UnifiedValue functionGetLightSwitch(JsonArrayConst args, const RuleCoreEnv& env);
+UnifiedValue functionGetCurrentTime(JsonArrayConst args, const RuleCoreEnv& env);
 
 // Helper function to validate zero-argument sensor calls
 UnifiedValue validateZeroArgSensor(JsonArrayConst args, std::function<float()> sensor);

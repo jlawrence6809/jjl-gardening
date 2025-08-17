@@ -2,96 +2,123 @@
 
 #include <ArduinoJson.h>
 #include <functional>
+#include <map>
 #include <string>
 
 #include "unified_value.h"  // Unified value type system
 
 /**
- * @file rule_core.h
- * @brief Platform-neutral core rule processing engine for IoT automation
+ * @file new_core.h
+ * @brief Platform-neutral core rule processing engine with function registry (UnifiedValue version)
  *
  * This header defines the core interfaces for processing automation rules expressed
- * in a LISP-like JSON syntax. The rule engine supports sensors, actuators, comparisons,
- * logical operations, and control flow constructs.
+ * in a LISP-like JSON syntax using a pluggable function registry system. The rule engine
+ * supports sensors, actuators, comparisons, logical operations, and control flow constructs.
  *
- * Example rule: ["IF", ["GT", "temperature", 25], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
- * This turns relay_0 ON when temperature > 25°C, OFF otherwise.
+ * Example rule: ["IF", ["GT", ["getTemperature"], 25], ["SET", "relay_0", 1], ["SET", "relay_0",
+ * 0]] This turns relay_0 ON when temperature > 25°C, OFF otherwise.
+ *
+ * Key improvements over original core:
+ * - Unified function system: everything is a function call
+ * - Pluggable function registry for extensibility
+ * - Platform-neutral core with platform-specific function registration
  */
 
+// Forward declaration for the environment structure
+struct RuleCoreEnv;
+
 /**
- * @struct RuleCoreEnv
- * @brief Environment context for rule execution
+ * @typedef FunctionHandler
+ * @brief Function signature for all DSL functions
  *
- * This structure provides callback functions that allow the rule engine to:
- * - Read sensor values from the physical environment
- * - Control actuators in the physical environment
- * - Get current time information
+ * All functions in the DSL follow this signature:
+ * - Take a JsonArrayConst containing the function call (including function name)
+ * - Take the environment context for accessing other functions/actuators
+ * - Return a UnifiedValue containing the result, error, or actuator reference
+ */
+using FunctionHandler = std::function<UnifiedValue(JsonArrayConst, const RuleCoreEnv &)>;
+
+/**
+ * @typedef FunctionRegistry
+ * @brief Registry mapping function names to their handlers
  *
- * Time literal parsing ("@HH:MM:SS" format) is handled internally by the rule engine.
+ * This is the core of the new architecture - a simple map from function names
+ * to their implementation functions. Allows dynamic registration of functions
+ * from different modules/platforms.
+ */
+using FunctionRegistry = std::map<std::string, FunctionHandler>;
+
+/**
+ * @struct NewRuleCoreEnv
+ * @brief Environment context for rule execution with function registry
  *
- * The callbacks make the rule engine platform-neutral - it can work on Arduino/ESP32,
- * native systems, or in unit tests by providing appropriate implementations.
+ * This structure provides the pluggable function registration mechanism that allows
+ * different platforms (Arduino, native tests, different sensor modules) to register
+ * their specific functions into the rule engine.
+ *
+ * The registry-based approach replaces the old callback-based value reading system
+ * with a unified function system where everything is a function call.
  */
 struct RuleCoreEnv {
     /**
-     * @brief Value reading callback
-     * @param name Value identifier (e.g., "temperature", "humidity", "photoSensor", "currentTime")
-     * @param outVal Reference to store the value if found
-     * @return true if value exists and was set, false if value unknown
+     * @brief Function registration callback
+     * @param registry Reference to the function registry to populate
+     *
+     * This callback is called during rule engine initialization to allow the
+     * platform/module to register all available functions. Different platforms
+     * can register different sets of functions.
      *
      * Example implementation:
      * ```cpp
-     * env.tryReadValue = [](const std::string &name, UnifiedValue &out) {
-     *     if (name == "temperature") { out = UnifiedValue(getTemperature()); return true; }
-     *     if (name == "humidity") { out = UnifiedValue(getHumidity()); return true; }
-     *     if (name == "status") { out = UnifiedValue("connected"); return true; }
-     *     return false;
+     * env.registerFunctions = [](FunctionRegistry& registry) {
+     *     // Register sensor functions
+     *     registry["getTemperature"] = [](JsonArrayConst args, const RuleCoreEnv& env) {
+     *         return UnifiedValue(getCurrentTemperature());
+     *     };
+     *
+     *     // Register operator functions
+     *     registry["GT"] = [](JsonArrayConst args, const RuleCoreEnv& env) {
+     *         // Implementation for greater-than comparison
+     *         // ...
+     *     };
      * };
      * ```
      */
-    std::function<bool(const std::string &name, UnifiedValue &outVal)> tryReadValue;
+    std::function<void(FunctionRegistry &)> registerFunctions;
 
     /**
-     * @brief Actuator control callback
+     * @brief Actuator control callback (unchanged from original)
      * @param name Actuator identifier (e.g., "relay_0", "relay_1", "fan_speed")
      * @param outSetter Reference to store the actuator control function if found
      * @return true if actuator exists and setter was provided, false if actuator unknown
      *
-     * The outSetter function, when called with a float value, should control the actuator.
-     * For relays: 0.0 = OFF, 1.0 = ON, 2.0 = DON'T CARE/AUTO
-     *
-     * Example implementation:
-     * ```cpp
-     * env.tryGetActuator = [](const std::string &name, std::function<void(float)> &setter) {
-     *     if (name == "relay_0") {
-     *         setter = [](float val) { setRelay(0, val); };
-     *         return true;
-     *     }
-     *     return false;
-     * };
-     * ```
+     * Note: Actuators remain as a separate callback system since they represent
+     * physical hardware control rather than data/computation functions.
      */
     std::function<bool(const std::string &name, std::function<void(float)> &outSetter)>
         tryGetActuator;
 };
 
 /**
- * @brief Core rule processing function
+ * @brief Core rule processing function with function registry
  * @param doc JSON document containing the rule expression to evaluate
- * @param env Environment context providing sensor/actuator access
+ * @param env Environment context providing function registry and actuator access
  * @return UnifiedValue containing the result, error information, or actuator reference
  *
- * This is the heart of the rule engine. It recursively processes JSON expressions
- * in LISP-like syntax:
+ * This is the heart of the new rule engine. It processes JSON expressions using
+ * the function registry system:
  *
- * - Literals: 25, true, "temperature", "@14:30:00"
- * - Comparisons: ["GT", expr1, expr2], ["EQ", expr1, expr2]
- * - Logic: ["AND", expr1, expr2], ["OR", expr1, expr2], ["NOT", expr]
- * - Control: ["IF", condition, then_expr, else_expr]
- * - Actions: ["SET", actuator, value], ["NOP"]
+ * - All operations are function calls: ["functionName", arg1, arg2, ...]
+ * - Functions are looked up in the registry provided by the environment
+ * - Supports same operations as original but with unified syntax:
+ *   - Sensors: ["getTemperature"], ["getHumidity"]
+ *   - Comparisons: ["GT", expr1, expr2], ["EQ", expr1, expr2]
+ *   - Logic: ["AND", expr1, expr2], ["OR", expr1, expr2], ["NOT", expr]
+ *   - Control: ["IF", condition, then_expr, else_expr]
+ *   - Actions: ["SET", actuator, value], ["NOP"]
  *
- * Return types:
- * - FLOAT_TYPE/INT_TYPE/STRING_TYPE: Value results (comparisons, sensors, literals)
+ * Return types (same as original):
+ * - FLOAT_TYPE/INT_TYPE/STRING_TYPE: Value results
  * - VOID_TYPE: No return value (SET, NOP operations)
  * - ACTUATOR_TYPE: Actuator reference (for SET operations)
  * - ERROR_TYPE: Processing error occurred
@@ -99,8 +126,8 @@ struct RuleCoreEnv {
  * Example usage:
  * ```cpp
  * DynamicJsonDocument doc(256);
- * deserializeJson(doc, "[\"GT\", \"temperature\", 25]");
- * UnifiedValue result = processRuleCore(doc, env);
+ * deserializeJson(doc, "[\"GT\", [\"getTemperature\"], 25]");
+ * UnifiedValue result = processNewRuleCore(doc, env);
  * if (result.type == UnifiedValue::FLOAT_TYPE) {
  *     bool tempHigh = (result.asFloat() > 0); // true if temperature > 25
  * }
@@ -109,41 +136,15 @@ struct RuleCoreEnv {
 UnifiedValue processRuleCore(JsonVariantConst doc, const RuleCoreEnv &env);
 
 /**
- * @brief Process a set of rules with automatic relay control
+ * @brief Process a set of rules with automatic relay control (registry version)
  * @param rules Array of rule strings in JSON format
  * @param ruleCount Number of rules in the array
  * @param env Environment context for rule execution
  *
- * This function processes multiple rules in sequence, with special handling for
- * automatic relay control:
+ * This function maintains the same automatic relay control behavior as the original
+ * but uses the new function registry system. See original documentation for details
+ * on the automatic relay control logic.
  *
- * 1. For each rule index i, first sets relay_i to "don't care" mode (value 2.0)
- * 2. Parses and executes the rule
- * 3. If the rule returns a FLOAT_TYPE result, automatically sets relay_i to that value
- * 4. VOID_TYPE results (from SET, NOP) don't trigger automatic relay control
- * 5. ERROR_TYPE results are logged but don't affect relay state
- *
- * This enables two usage patterns:
- *
- * **Simple pattern** (automatic relay control):
- * ```cpp
- * std::string rules[] = {
- *     "[\"GT\", \"temperature\", 25]",  // relay_0 = 1 if temp > 25, else 0
- *     "[\"LT\", \"humidity\", 80]"      // relay_1 = 1 if humidity < 80, else 0
- * };
- * processRuleSet(rules, 2, env);
- * ```
- *
- * **Explicit pattern** (manual relay control):
- * ```cpp
- * std::string rules[] = {
- *     "[\"IF\", [\"GT\", \"temperature\", 25], [\"SET\", \"relay_0\", 1], [\"SET\", \"relay_0\",
- * 0]]"
- * };
- * processRuleSet(rules, 1, env);
- * ```
- *
- * The function is platform-neutral and works on both embedded systems (Arduino/ESP32)
- * and native systems for testing.
+ * Note: Rules must use the new unified syntax with explicit function calls.
  */
 void processRuleSet(const std::string rules[], int ruleCount, const RuleCoreEnv &env);

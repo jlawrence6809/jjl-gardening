@@ -7,7 +7,7 @@
 #include <ArduinoJson.h>
 #include <gtest/gtest.h>
 #include "../src/automation_dsl/bridge_functions.h"
-#include "../src/automation_dsl/new_core.h"
+#include "../src/automation_dsl/core.h"
 #include "../src/automation_dsl/registry_functions.h"
 #include "test_mocks.h"
 
@@ -45,7 +45,7 @@ class BridgeIntegrationTest : public ::testing::Test {
         if (error) {
             return UnifiedValue::createError(UNREC_FUNC_ERROR);
         }
-        return processNewRuleCore(doc.as<JsonVariantConst>(), env);
+        return processRuleCore(doc.as<JsonVariantConst>(), env);
     }
 
     // Helper function to simulate processNewRuleSet for a single rule
@@ -62,7 +62,7 @@ class BridgeIntegrationTest : public ::testing::Test {
         }
     }
 
-    NewRuleCoreEnv env;
+    RuleCoreEnv env;
 };
 
 // Test 1: Real bridge sensor functions

@@ -8,7 +8,7 @@
  */
 
 #include "bridge_functions.h"
-#include "new_core.h"
+#include "core.h"
 
 // Include necessary Arduino/ESP32 headers when compiling for embedded target
 #ifdef ARDUINO
@@ -60,7 +60,7 @@ UnifiedValue validateZeroArgSensor(JsonArrayConst args, std::function<float()> s
  * @brief Get current temperature reading
  * Syntax: ["getTemperature"]
  */
-UnifiedValue functionGetTemperature(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionGetTemperature(JsonArrayConst args, const RuleCoreEnv& env) {
     return validateZeroArgSensor(args, []() { return getTemperature(); });
 }
 
@@ -68,7 +68,7 @@ UnifiedValue functionGetTemperature(JsonArrayConst args, const NewRuleCoreEnv& e
  * @brief Get current humidity reading
  * Syntax: ["getHumidity"]
  */
-UnifiedValue functionGetHumidity(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionGetHumidity(JsonArrayConst args, const RuleCoreEnv& env) {
     return validateZeroArgSensor(args, []() { return getHumidity(); });
 }
 
@@ -76,7 +76,7 @@ UnifiedValue functionGetHumidity(JsonArrayConst args, const NewRuleCoreEnv& env)
  * @brief Get current photo sensor (light level) reading
  * Syntax: ["getPhotoSensor"]
  */
-UnifiedValue functionGetPhotoSensor(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionGetPhotoSensor(JsonArrayConst args, const RuleCoreEnv& env) {
     return validateZeroArgSensor(args, []() { return getPhotoSensor(); });
 }
 
@@ -84,7 +84,7 @@ UnifiedValue functionGetPhotoSensor(JsonArrayConst args, const NewRuleCoreEnv& e
  * @brief Get current light switch state
  * Syntax: ["getLightSwitch"]
  */
-UnifiedValue functionGetLightSwitch(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionGetLightSwitch(JsonArrayConst args, const RuleCoreEnv& env) {
     return validateZeroArgSensor(args, []() { return getLightSwitch(); });
 }
 
@@ -92,7 +92,7 @@ UnifiedValue functionGetLightSwitch(JsonArrayConst args, const NewRuleCoreEnv& e
  * @brief Get current time in seconds since midnight
  * Syntax: ["getCurrentTime"]
  */
-UnifiedValue functionGetCurrentTime(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionGetCurrentTime(JsonArrayConst args, const RuleCoreEnv& env) {
     return validateZeroArgSensor(args, []() { return static_cast<float>(getCurrentSeconds()); });
 }
 

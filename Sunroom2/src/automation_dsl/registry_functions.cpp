@@ -9,7 +9,7 @@
 
 #include "registry_functions.h"
 #include <cstring>
-#include "new_core.h"
+#include "core.h"
 
 /**
  * @brief Register all core DSL functions into the provided registry
@@ -41,14 +41,14 @@ namespace RegistryFunctions {
 /**
  * @brief Helper function for binary numeric operations with comparison
  */
-UnifiedValue validateBinaryNumeric(JsonArrayConst args, const NewRuleCoreEnv& env,
+UnifiedValue validateBinaryNumeric(JsonArrayConst args, const RuleCoreEnv& env,
                                    std::function<bool(float, float)> comparison) {
     if (args.size() != 3) {
         return UnifiedValue::createError(COMPARISON_TYPE_ERROR);
     }
 
-    UnifiedValue a = processNewRuleCore(args[1], env);
-    UnifiedValue b = processNewRuleCore(args[2], env);
+    UnifiedValue a = processRuleCore(args[1], env);
+    UnifiedValue b = processRuleCore(args[2], env);
 
     if (a.type == UnifiedValue::ERROR_TYPE) return a;
     if (b.type == UnifiedValue::ERROR_TYPE) return b;
@@ -65,13 +65,13 @@ UnifiedValue validateBinaryNumeric(JsonArrayConst args, const NewRuleCoreEnv& en
 /**
  * @brief Helper function for unary numeric operations
  */
-UnifiedValue validateUnaryNumeric(JsonArrayConst args, const NewRuleCoreEnv& env,
+UnifiedValue validateUnaryNumeric(JsonArrayConst args, const RuleCoreEnv& env,
                                   std::function<float(float)> operation) {
     if (args.size() != 2) {
         return UnifiedValue::createError(NOT_ERROR);
     }
 
-    UnifiedValue a = processNewRuleCore(args[1], env);
+    UnifiedValue a = processRuleCore(args[1], env);
     if (a.type == UnifiedValue::ERROR_TYPE) return a;
 
     if (a.type != UnifiedValue::FLOAT_TYPE && a.type != UnifiedValue::INT_TYPE) {
@@ -84,29 +84,29 @@ UnifiedValue validateUnaryNumeric(JsonArrayConst args, const NewRuleCoreEnv& env
 
 // Comparison function implementations
 
-UnifiedValue functionGT(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionGT(JsonArrayConst args, const RuleCoreEnv& env) {
     return validateBinaryNumeric(args, env, [](float a, float b) { return a > b; });
 }
 
-UnifiedValue functionLT(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionLT(JsonArrayConst args, const RuleCoreEnv& env) {
     return validateBinaryNumeric(args, env, [](float a, float b) { return a < b; });
 }
 
-UnifiedValue functionGTE(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionGTE(JsonArrayConst args, const RuleCoreEnv& env) {
     return validateBinaryNumeric(args, env, [](float a, float b) { return a >= b; });
 }
 
-UnifiedValue functionLTE(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionLTE(JsonArrayConst args, const RuleCoreEnv& env) {
     return validateBinaryNumeric(args, env, [](float a, float b) { return a <= b; });
 }
 
-UnifiedValue functionEQ(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionEQ(JsonArrayConst args, const RuleCoreEnv& env) {
     if (args.size() != 3) {
         return UnifiedValue::createError(COMPARISON_TYPE_ERROR);
     }
 
-    UnifiedValue a = processNewRuleCore(args[1], env);
-    UnifiedValue b = processNewRuleCore(args[2], env);
+    UnifiedValue a = processRuleCore(args[1], env);
+    UnifiedValue b = processRuleCore(args[2], env);
 
     if (a.type == UnifiedValue::ERROR_TYPE) return a;
     if (b.type == UnifiedValue::ERROR_TYPE) return b;
@@ -115,13 +115,13 @@ UnifiedValue functionEQ(JsonArrayConst args, const NewRuleCoreEnv& env) {
     return UnifiedValue((a == b) ? 1.0f : 0.0f);
 }
 
-UnifiedValue functionNE(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionNE(JsonArrayConst args, const RuleCoreEnv& env) {
     if (args.size() != 3) {
         return UnifiedValue::createError(COMPARISON_TYPE_ERROR);
     }
 
-    UnifiedValue a = processNewRuleCore(args[1], env);
-    UnifiedValue b = processNewRuleCore(args[2], env);
+    UnifiedValue a = processRuleCore(args[1], env);
+    UnifiedValue b = processRuleCore(args[2], env);
 
     if (a.type == UnifiedValue::ERROR_TYPE) return a;
     if (b.type == UnifiedValue::ERROR_TYPE) return b;
@@ -132,13 +132,13 @@ UnifiedValue functionNE(JsonArrayConst args, const NewRuleCoreEnv& env) {
 
 // Logical function implementations
 
-UnifiedValue functionAND(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionAND(JsonArrayConst args, const RuleCoreEnv& env) {
     if (args.size() != 3) {
         return UnifiedValue::createError(AND_OR_ERROR);
     }
 
     // Evaluate first operand
-    UnifiedValue a = processNewRuleCore(args[1], env);
+    UnifiedValue a = processRuleCore(args[1], env);
     if (a.type == UnifiedValue::ERROR_TYPE) return a;
 
     // Short-circuit evaluation: if first is false, return false immediately
@@ -147,7 +147,7 @@ UnifiedValue functionAND(JsonArrayConst args, const NewRuleCoreEnv& env) {
     }
 
     // Evaluate second operand only if first was true
-    UnifiedValue b = processNewRuleCore(args[2], env);
+    UnifiedValue b = processRuleCore(args[2], env);
     if (b.type == UnifiedValue::ERROR_TYPE) return b;
 
     if ((a.type != UnifiedValue::FLOAT_TYPE && a.type != UnifiedValue::INT_TYPE) ||
@@ -159,13 +159,13 @@ UnifiedValue functionAND(JsonArrayConst args, const NewRuleCoreEnv& env) {
     return UnifiedValue(result ? 1.0f : 0.0f);
 }
 
-UnifiedValue functionOR(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionOR(JsonArrayConst args, const RuleCoreEnv& env) {
     if (args.size() != 3) {
         return UnifiedValue::createError(AND_OR_ERROR);
     }
 
     // Evaluate first operand
-    UnifiedValue a = processNewRuleCore(args[1], env);
+    UnifiedValue a = processRuleCore(args[1], env);
     if (a.type == UnifiedValue::ERROR_TYPE) return a;
 
     // Short-circuit evaluation: if first is true, return true immediately
@@ -174,7 +174,7 @@ UnifiedValue functionOR(JsonArrayConst args, const NewRuleCoreEnv& env) {
     }
 
     // Evaluate second operand only if first was false
-    UnifiedValue b = processNewRuleCore(args[2], env);
+    UnifiedValue b = processRuleCore(args[2], env);
     if (b.type == UnifiedValue::ERROR_TYPE) return b;
 
     if ((a.type != UnifiedValue::FLOAT_TYPE && a.type != UnifiedValue::INT_TYPE) ||
@@ -186,18 +186,18 @@ UnifiedValue functionOR(JsonArrayConst args, const NewRuleCoreEnv& env) {
     return UnifiedValue(result ? 1.0f : 0.0f);
 }
 
-UnifiedValue functionNOT(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionNOT(JsonArrayConst args, const RuleCoreEnv& env) {
     return validateUnaryNumeric(args, env, [](float a) { return !(a > 0) ? 1.0f : 0.0f; });
 }
 
 // Control flow function implementations
 
-UnifiedValue functionIF(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionIF(JsonArrayConst args, const RuleCoreEnv& env) {
     if (args.size() != 4) {
         return UnifiedValue::createError(IF_CONDITION_ERROR);
     }
 
-    UnifiedValue cond = processNewRuleCore(args[1], env);
+    UnifiedValue cond = processRuleCore(args[1], env);
     if (cond.type == UnifiedValue::ERROR_TYPE) return cond;
 
     if (cond.type != UnifiedValue::FLOAT_TYPE && cond.type != UnifiedValue::INT_TYPE) {
@@ -205,18 +205,18 @@ UnifiedValue functionIF(JsonArrayConst args, const NewRuleCoreEnv& env) {
     }
 
     // Execute then branch if condition is truthy, else branch otherwise
-    return cond.asFloat() > 0 ? processNewRuleCore(args[2], env) : processNewRuleCore(args[3], env);
+    return cond.asFloat() > 0 ? processRuleCore(args[2], env) : processRuleCore(args[3], env);
 }
 
 // Action function implementations
 
-UnifiedValue functionSET(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionSET(JsonArrayConst args, const RuleCoreEnv& env) {
     if (args.size() != 3) {
         return UnifiedValue::createError(BOOL_ACTUATOR_ERROR);
     }
 
-    UnifiedValue act = processNewRuleCore(args[1], env);
-    UnifiedValue val = processNewRuleCore(args[2], env);
+    UnifiedValue act = processRuleCore(args[1], env);
+    UnifiedValue val = processRuleCore(args[2], env);
 
     if (act.type == UnifiedValue::ERROR_TYPE) return act;
     if (val.type == UnifiedValue::ERROR_TYPE) return val;
@@ -232,7 +232,7 @@ UnifiedValue functionSET(JsonArrayConst args, const NewRuleCoreEnv& env) {
     return UnifiedValue::createVoid();
 }
 
-UnifiedValue functionNOP(JsonArrayConst args, const NewRuleCoreEnv& env) {
+UnifiedValue functionNOP(JsonArrayConst args, const RuleCoreEnv& env) {
     // NOP takes no arguments and does nothing
     return UnifiedValue::createVoid();
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "new_core.h"
+#include "core.h"
 
 /**
  * @file registry_functions.h
@@ -31,28 +31,28 @@ void registerCoreFunctions(FunctionRegistry& registry);
 namespace RegistryFunctions {
 
 // Comparison functions
-UnifiedValue functionGT(JsonArrayConst args, const NewRuleCoreEnv& env);
-UnifiedValue functionLT(JsonArrayConst args, const NewRuleCoreEnv& env);
-UnifiedValue functionEQ(JsonArrayConst args, const NewRuleCoreEnv& env);
-UnifiedValue functionNE(JsonArrayConst args, const NewRuleCoreEnv& env);
-UnifiedValue functionGTE(JsonArrayConst args, const NewRuleCoreEnv& env);
-UnifiedValue functionLTE(JsonArrayConst args, const NewRuleCoreEnv& env);
+UnifiedValue functionGT(JsonArrayConst args, const RuleCoreEnv& env);
+UnifiedValue functionLT(JsonArrayConst args, const RuleCoreEnv& env);
+UnifiedValue functionEQ(JsonArrayConst args, const RuleCoreEnv& env);
+UnifiedValue functionNE(JsonArrayConst args, const RuleCoreEnv& env);
+UnifiedValue functionGTE(JsonArrayConst args, const RuleCoreEnv& env);
+UnifiedValue functionLTE(JsonArrayConst args, const RuleCoreEnv& env);
 
 // Logical functions
-UnifiedValue functionAND(JsonArrayConst args, const NewRuleCoreEnv& env);
-UnifiedValue functionOR(JsonArrayConst args, const NewRuleCoreEnv& env);
-UnifiedValue functionNOT(JsonArrayConst args, const NewRuleCoreEnv& env);
+UnifiedValue functionAND(JsonArrayConst args, const RuleCoreEnv& env);
+UnifiedValue functionOR(JsonArrayConst args, const RuleCoreEnv& env);
+UnifiedValue functionNOT(JsonArrayConst args, const RuleCoreEnv& env);
 
 // Control flow functions
-UnifiedValue functionIF(JsonArrayConst args, const NewRuleCoreEnv& env);
+UnifiedValue functionIF(JsonArrayConst args, const RuleCoreEnv& env);
 
 // Action functions
-UnifiedValue functionSET(JsonArrayConst args, const NewRuleCoreEnv& env);
-UnifiedValue functionNOP(JsonArrayConst args, const NewRuleCoreEnv& env);
+UnifiedValue functionSET(JsonArrayConst args, const RuleCoreEnv& env);
+UnifiedValue functionNOP(JsonArrayConst args, const RuleCoreEnv& env);
 
 // Helper functions for common validation patterns
-UnifiedValue validateBinaryNumeric(JsonArrayConst args, const NewRuleCoreEnv& env,
+UnifiedValue validateBinaryNumeric(JsonArrayConst args, const RuleCoreEnv& env,
                                    std::function<bool(float, float)> comparison);
-UnifiedValue validateUnaryNumeric(JsonArrayConst args, const NewRuleCoreEnv& env,
+UnifiedValue validateUnaryNumeric(JsonArrayConst args, const RuleCoreEnv& env,
                                   std::function<float(float)> operation);
 }  // namespace RegistryFunctions

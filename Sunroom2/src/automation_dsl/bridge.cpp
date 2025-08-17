@@ -3,29 +3,35 @@
 #include <functional>
 #include <map>
 #include <time.h>
+#include "bridge_functions.h"
 #include "core.h"
 #include "definitions.h"
 #include "interval_timer.h"
+#include "registry_functions.h"
 
 /**
- * This file contains the logic for processing the relay rules
- * Here are some possible rules:
+ * This file contains the logic for processing relay rules using the new function registry system.
+ *
+ * The new system uses unified function syntax where everything is a function call:
+ *
  * Temperature rules:
- * ["IF", ["EQ", "temperature", 25], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
- * ["IF", ["GT", "temperature", 25], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
- * ["IF", ["AND", ["GT", "temperature", 25], ["LT", "temperature", 30]], ["SET", "relay_0", 1],
- * ["SET", "relay_0", 0]]
+ * ["IF", ["GT", ["getTemperature"], 25], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ * ["AND", ["GT", ["getTemperature"], 25], ["LT", ["getTemperature"], 30]]
  *
  * Time rules:
- * ["IF", ["GT", "currentTime", "@12:00:00"], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
- * ["IF", ["EQ", "currentTime", "@12:00:00"], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ * ["GT", ["getCurrentTime"], "@12:00:00"]
  *
  * Light rules:
- * ["IF", ["GT", "photoSensor", 1000], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ * ["GT", ["getPhotoSensor"], 1000]
  *
  * Switch rules:
- * ["IF", ["EQ", "lightSwitch", 1], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
+ * ["EQ", ["getLightSwitch"], 1]
  *
+ * Simple rules automatically control relays:
+ * ["GT", ["getTemperature"], 25]  // Automatically sets relay to 1 if temp > 25°C
+ *
+ * Complex rules use explicit control:
+ * ["IF", condition, ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
  */
 
 /**
@@ -113,41 +119,23 @@ void printRuleReturn(RuleReturn result) {
 }
 
 /**
- * Process the relay rules
+ * Function registration callback for the new registry system
+ */
+void registerFunctions(FunctionRegistry &registry) {
+    // Register core DSL functions (GT, LT, EQ, AND, OR, NOT, IF, SET, NOP)
+    registerCoreFunctions(registry);
+
+    // Register platform-specific sensor functions
+    registerBridgeFunctions(registry);
+}
+
+/**
+ * Process the automation DSL using the function registry system
  */
 void processAutomationDsl() {
-    // // setup some test values
-    // CURRENT_TEMPERATURE = 25.0;
-    // CURRENT_HUMIDITY = 50.0;
-    // LIGHT_LEVEL = 1000;
-    // IS_SWITCH_ON = 1;
-
-    // Bridge to reusable, platform-neutral core evaluator
+    // Set up the new environment with function registry
     RuleCoreEnv env{};
-    env.tryReadValue = [](const std::string &name, UnifiedValue &out) {
-        if (name == "temperature") {
-            out = UnifiedValue(getTemperature());
-            return true;
-        }
-        if (name == "humidity") {
-            out = UnifiedValue(getHumidity());
-            return true;
-        }
-        if (name == "photoSensor") {
-            out = UnifiedValue(getPhotoSensor());
-            return true;
-        }
-        if (name == "lightSwitch") {
-            out = UnifiedValue(getLightSwitch());
-            return true;
-        }
-        if (name == "currentTime") {
-            out = UnifiedValue(getCurrentSeconds());
-            return true;
-        }
-        return false;
-    };
-    // Set up actuator lookup function for rule processing system
+    env.registerFunctions = registerFunctions;
     env.tryGetActuator = [](const std::string &name, std::function<void(float)> &setter) {
         // Define prefix for relay actuators
         String relayPrefix = "relay_";
@@ -170,6 +158,6 @@ void processAutomationDsl() {
         stdRules[i] = std::string(RELAY_RULES[i].c_str());
     }
 
-    // Use the generic rule processing function with unified actuator system
+    // Use the new rule processing function with unified function system
     processRuleSet(stdRules, RUNTIME_RELAY_COUNT, env);
 }
