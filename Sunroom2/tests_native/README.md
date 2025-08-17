@@ -8,38 +8,93 @@ Native tests are useful for testing platform-neutral code that doesn't depend on
 
 ## Current Tests
 
-- **`rule_core_runner.cpp`**: Tests the core rule evaluation logic in `src/rule_core.cpp`
-  - Tests logical operations: EQ, AND, OR, NOT
-  - Tests sensor integration with IF-SET
-  - Tests composite expressions like `AND(EQ(...), NOT(...))`
+- **`unified_value_tests.cpp`**: Tests the core UnifiedValue type system
+  - Type construction, conversion, and validation
+  - Error handling and edge cases
+  - Memory management
+  
+- **`function_registry_tests.cpp`**: Tests the function registry system
+  - Core function implementations (GT, LT, EQ, AND, OR, NOT, IF, SET, NOP)
+  - Sensor function integration
+  - Error handling and validation
+  - Complex nested expressions
+
+- **`bridge_integration_tests.cpp`**: Tests real-world automation scenarios
+  - Temperature/humidity/light-based automation
+  - Multi-sensor decision logic
+  - Smart greenhouse control scenarios
+  - Multiple relay control simulation
 
 ## Running Tests
 
-Use the provided script to build and run all native tests:
+### Option 1: CMake (Recommended)
 
 ```bash
+# One-time setup
+mkdir build && cd build
+cmake ..
+
+# Build and run all tests
+make && ./native_tests
+
+# Run specific test suites
+./native_tests --gtest_filter="FunctionRegistryTest.*"
+./native_tests --gtest_filter="BridgeIntegrationTest.*"
+
+# Or use the custom target
+make run_tests
+```
+
+### Option 2: Legacy Script
+
+```bash
+# From project root
 ./run_native_tests.sh
 ```
 
-This script:
+## Dependencies
 
-1. Ensures ArduinoJson headers are available via `pio run -e native`
-2. Compiles the tests using `clang++` (or `g++` on Linux)
-3. Runs the compiled test binary
-4. Reports results
+- **GoogleTest**: Automatically downloaded via CMake FetchContent
+- **ArduinoJson**: Provided by PlatformIO (`pio run -e native` to install)
+- **Standard C++17**: Tests use modern C++ features
+
+## Test Structure
+
+All tests follow Google Test patterns:
+
+```cpp
+class MyTest : public ::testing::Test {
+protected:
+    void SetUp() override { /* setup */ }
+    void TearDown() override { /* cleanup */ }
+};
+
+TEST_F(MyTest, SomeFeature) {
+    EXPECT_EQ(expected, actual);
+    ASSERT_TRUE(condition);
+}
+```
 
 ## Adding New Tests
 
-To add new native tests:
-
 1. Create a new `.cpp` file in this directory
-2. Include necessary headers from `src/`
-3. Write test functions using simple assertions
-4. Add a `main()` function to run your tests
-5. Update `run_native_tests.sh` to compile and run your new test file
+2. Include necessary headers from `../src/automation_dsl/`
+3. Write test functions using Google Test macros
+4. Tests will be automatically discovered by CMake
 
-## Dependencies
+## Mock System
 
-- **ArduinoJson**: Used for JSON parsing in rule evaluation
-- **Standard C++**: Tests use `std::string`, `std::function`, etc.
-- **No Arduino dependencies**: Tests avoid Arduino.h, String, etc. for platform neutrality
+Tests use a shared mock system defined in:
+- `test_mocks.h` - Mock declarations
+- `test_mocks.cpp` - Mock implementations
+
+This provides consistent mock sensors and actuators across all test files.
+
+## Platform Independence
+
+Tests avoid Arduino dependencies and use:
+- `std::string` instead of Arduino `String`
+- `std::function` instead of Arduino function types
+- Standard C++ I/O instead of `Serial`
+
+This ensures tests run reliably on any development machine.
