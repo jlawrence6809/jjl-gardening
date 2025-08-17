@@ -11,6 +11,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 INC_DIR=".pio/libdeps/native/ArduinoJson/src"
+GTEST_CELLAR_PREFIX="/opt/homebrew/Cellar/googletest/1.17.0"
+GTEST_INC_DIR="$GTEST_CELLAR_PREFIX/include"
+GTEST_LIB_DIR="$GTEST_CELLAR_PREFIX/lib"
 BUILD_DIR=".native_build"
 BIN="$BUILD_DIR/rule_core_runner"
 
@@ -35,9 +38,11 @@ fi
 
 echo "[native-tests] Building with $CXX_BIN..."
 "$CXX_BIN" -std=c++17 -O2 \
-  -I"$INC_DIR" \
+  -I"$INC_DIR" -I"$GTEST_INC_DIR" \
   src/automation_dsl/core.cpp \
   tests_native/rule_core_runner.cpp \
+  tests_native/unified_value_tests.cpp \
+  -L"$GTEST_LIB_DIR" -lgtest -lgtest_main -lpthread \
   -o "$BIN"
 
 echo "[native-tests] Running $BIN $*"

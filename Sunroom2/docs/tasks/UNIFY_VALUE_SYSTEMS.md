@@ -225,7 +225,7 @@ This unification represents a significant architectural improvement that will ma
 
 1. **Created UnifiedValue** - New unified type in `src/automation_dsl/unified_value.h`
 2. **Updated Core Engine** - `core.h/cpp` now uses UnifiedValue throughout
-3. **Updated Bridge Code** - `bridge.cpp` sensor reading uses UnifiedValue  
+3. **Updated Bridge Code** - `bridge.cpp` sensor reading uses UnifiedValue
 4. **Comprehensive Testing** - Full test suite with 90%+ pass rate
 5. **Cleaned Up Old Code** - Removed `types.h`, `value_tagged_union.h`, old implementations
 
@@ -234,7 +234,7 @@ This unification represents a significant architectural improvement that will ma
 ```cpp
 // Single unified type for all automation DSL operations
 UnifiedValue temp = readSensor("temperature");     // Sensor input
-UnifiedValue result = processRule(["GT", temp, 20]); // Rule evaluation  
+UnifiedValue result = processRule(["GT", temp, 20]); // Rule evaluation
 if (result.type == UnifiedValue::ERROR_TYPE) {
     // Consistent error handling
 }
