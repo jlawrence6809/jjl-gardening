@@ -43,6 +43,9 @@ enum ErrorCode {
     TIME_ERROR,             ///< Time literal parsing error
     UNREC_ACTUATOR_ERROR,   ///< Unknown actuator name
 
+    // Function registry errors
+    FUNCTION_NOT_FOUND,  ///< Function name not in registry
+
     // Sensor/hardware errors (future)
     SENSOR_READ_ERROR,  ///< Hardware sensor failure
     ACTUATOR_SET_ERROR  ///< Hardware actuator failure
@@ -532,6 +535,8 @@ struct UnifiedValue {
                 return "time_error";
             case UNREC_ACTUATOR_ERROR:
                 return "unrecognized_actuator_error";
+            case FUNCTION_NOT_FOUND:
+                return "function_not_found";
             case SENSOR_READ_ERROR:
                 return "sensor_read_error";
             case ACTUATOR_SET_ERROR:
