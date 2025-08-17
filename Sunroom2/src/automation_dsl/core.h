@@ -4,8 +4,7 @@
 #include <functional>
 #include <string>
 
-#include "types.h"        // Reuse TypeCode, ErrorCode, RuleReturn
-#include "value_tagged_union.h"  // Variant type for sensor values
+#include "unified_value.h"  // Unified value type system
 
 /**
  * @file rule_core.h
@@ -42,15 +41,15 @@ struct RuleCoreEnv {
      *
      * Example implementation:
      * ```cpp
-     * env.tryReadValue = [](const std::string &name, ValueTaggedUnion &out) {
-     *     if (name == "temperature") { out = ValueTaggedUnion(getTemperature()); return true; }
-     *     if (name == "humidity") { out = ValueTaggedUnion(getHumidity()); return true; }
-     *     if (name == "status") { out = ValueTaggedUnion("connected"); return true; }
+     * env.tryReadValue = [](const std::string &name, UnifiedValue &out) {
+     *     if (name == "temperature") { out = UnifiedValue(getTemperature()); return true; }
+     *     if (name == "humidity") { out = UnifiedValue(getHumidity()); return true; }
+     *     if (name == "status") { out = UnifiedValue("connected"); return true; }
      *     return false;
      * };
      * ```
      */
-    std::function<bool(const std::string &name, ValueTaggedUnion &outVal)> tryReadValue;
+    std::function<bool(const std::string &name, UnifiedValue &outVal)> tryReadValue;
 
     /**
      * @brief Actuator control callback
@@ -80,7 +79,7 @@ struct RuleCoreEnv {
  * @brief Core rule processing function
  * @param doc JSON document containing the rule expression to evaluate
  * @param env Environment context providing sensor/actuator access
- * @return RuleReturn structure containing the result type, value, and any errors
+ * @return UnifiedValue containing the result, error information, or actuator reference
  *
  * This is the heart of the rule engine. It recursively processes JSON expressions
  * in LISP-like syntax:
@@ -92,22 +91,22 @@ struct RuleCoreEnv {
  * - Actions: ["SET", actuator, value], ["NOP"]
  *
  * Return types:
- * - FLOAT_TYPE: Numeric result (comparisons, sensors, literals)
+ * - FLOAT_TYPE/INT_TYPE/STRING_TYPE: Value results (comparisons, sensors, literals)
  * - VOID_TYPE: No return value (SET, NOP operations)
- * - BOOL_ACTUATOR_TYPE: Actuator reference (for SET operations)
+ * - ACTUATOR_TYPE: Actuator reference (for SET operations)
  * - ERROR_TYPE: Processing error occurred
  *
  * Example usage:
  * ```cpp
  * DynamicJsonDocument doc(256);
  * deserializeJson(doc, "[\"GT\", \"temperature\", 25]");
- * RuleReturn result = processRuleCore(doc, env);
- * if (result.type == FLOAT_TYPE) {
- *     bool tempHigh = (result.val > 0); // true if temperature > 25
+ * UnifiedValue result = processRuleCore(doc, env);
+ * if (result.type == UnifiedValue::FLOAT_TYPE) {
+ *     bool tempHigh = (result.asFloat() > 0); // true if temperature > 25
  * }
  * ```
  */
-RuleReturn processRuleCore(JsonVariantConst doc, const RuleCoreEnv &env);
+UnifiedValue processRuleCore(JsonVariantConst doc, const RuleCoreEnv &env);
 
 /**
  * @brief Process a set of rules with automatic relay control

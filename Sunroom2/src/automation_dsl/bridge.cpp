@@ -6,8 +6,7 @@
 #include "core.h"
 #include "definitions.h"
 #include "interval_timer.h"
-#include "types.h"
-#include "value_tagged_union.h"
+
 
 /**
  * This file contains the logic for processing the relay rules
@@ -126,29 +125,29 @@ void processAutomationDsl() {
 
     // Bridge to reusable, platform-neutral core evaluator
     RuleCoreEnv env{};
-    env.tryReadValue = [](const std::string &name, ValueTaggedUnion &out) {
-        if (name == "temperature") {
-            out = ValueTaggedUnion(getTemperature());
-            return true;
-        }
-        if (name == "humidity") {
-            out = ValueTaggedUnion(getHumidity());
-            return true;
-        }
-        if (name == "photoSensor") {
-            out = ValueTaggedUnion(getPhotoSensor());
-            return true;
-        }
-        if (name == "lightSwitch") {
-            out = ValueTaggedUnion(getLightSwitch());
-            return true;
-        }
-        if (name == "currentTime") {
-            out = ValueTaggedUnion(getCurrentSeconds());
-            return true;
-        }
-        return false;
-    };
+         env.tryReadValue = [](const std::string &name, UnifiedValue &out) {
+         if (name == "temperature") {
+             out = UnifiedValue(getTemperature());
+             return true;
+         }
+         if (name == "humidity") {
+             out = UnifiedValue(getHumidity());
+             return true;
+         }
+         if (name == "photoSensor") {
+             out = UnifiedValue(getPhotoSensor());
+             return true;
+         }
+         if (name == "lightSwitch") {
+             out = UnifiedValue(getLightSwitch());
+             return true;
+         }
+         if (name == "currentTime") {
+             out = UnifiedValue(getCurrentSeconds());
+             return true;
+         }
+         return false;
+     };
     // Set up actuator lookup function for rule processing system
     env.tryGetActuator = [](const std::string &name, std::function<void(float)> &setter) {
         // Define prefix for relay actuators

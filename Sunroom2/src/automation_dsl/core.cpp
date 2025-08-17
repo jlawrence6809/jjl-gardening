@@ -1,108 +1,26 @@
 /**
- * @file rule_core.cpp
- * @brief Platform-neutral core rule processing engine implementation
+ * @file core.cpp
+ * @brief Platform-neutral core rule processing engine implementation (UnifiedValue version)
  *
- * This file implements the core rule processing logic for the Sunroom2 automation system.
- * It processes rules expressed in a LISP-like JSON syntax, supporting sensors, actuators,
- * comparisons, logical operations, and control flow.
+ * This file implements the core rule processing logic for the Sunroom2 automation system
+ * using the new UnifiedValue type system. It processes rules expressed in a LISP-like JSON
+ * syntax, supporting sensors, actuators, comparisons, logical operations, and control flow.
  *
  * The engine is designed to be platform-neutral and can run on Arduino/ESP32, native systems,
  * or in unit tests by providing appropriate environment callbacks.
  *
  * Key features:
  * - Recursive expression evaluation
- * - Type-safe operations with error handling
- * - Short-circuit evaluation for logical operations
- * - Unified numeric system (all values stored as floats)
+ * - Type-safe sensor/actuator abstraction
+ * - Comprehensive error reporting
+ * - Short-circuit logical evaluation
  * - Time literal support (@HH:MM:SS format)
- * - Sensor reading and actuator control abstraction
+ * - Unified value system for all data types
  */
 
 #include "core.h"
 #include <cstring>
 #include <string>
-#include "value_tagged_union.h"
-
-/**
- * @brief Create a RuleReturn structure with specified parameters
- * @param type The type code for the return value
- * @param errorCode Error code (NO_ERROR if successful)
- * @param val Numeric value (meaningful for FLOAT_TYPE)
- * @return Constructed RuleReturn structure
- *
- * This is the low-level constructor for all RuleReturn values.
- * The actuatorSetter is always initialized to nullptr.
- */
-static RuleReturn createRuleReturn(TypeCode type, ErrorCode errorCode, float val) {
-    return {type, errorCode, val, nullptr};
-}
-
-/**
- * @brief Create an error RuleReturn with specified error code
- * @param error The specific error that occurred
- * @return RuleReturn with ERROR_TYPE and the specified error code
- *
- * Used throughout the engine to report various types of errors:
- * - UNREC_TYPE_ERROR: Unknown JSON type
- * - UNREC_FUNC_ERROR: Unknown function name
- * - UNREC_STR_ERROR: Unknown string literal (sensor/actuator)
- * - TIME_ERROR: Time parsing failed
- * - Various operation-specific errors
- */
-static RuleReturn createErrorRuleReturn(ErrorCode error) {
-    return createRuleReturn(ERROR_TYPE, error, 0.0f);
-}
-
-/**
- * @brief Create a successful float RuleReturn
- * @param v The float value to return
- * @return RuleReturn with FLOAT_TYPE and the specified value
- *
- * Used for:
- * - Sensor readings
- * - Comparison results (1.0 for true, 0.0 for false)
- * - Arithmetic operations
- * - Time values in seconds
- */
-static RuleReturn createFloatRuleReturn(float v) {
-    return createRuleReturn(FLOAT_TYPE, NO_ERROR, v);
-}
-
-/**
- * @brief Create a successful float RuleReturn from an integer
- * @param v The integer value to convert and return
- * @return RuleReturn with FLOAT_TYPE and the converted value
- *
- * Used for integer literals and time values. All numeric values
- * are internally represented as floats for consistency.
- */
-static RuleReturn createIntRuleReturn(int v) {
-    return createFloatRuleReturn(static_cast<float>(v));
-}
-
-/**
- * @brief Create a void RuleReturn for operations with no return value
- * @return RuleReturn with VOID_TYPE indicating successful completion
- *
- * Used for:
- * - SET operations (after they complete successfully)
- * - NOP operations
- * - Operations that perform side effects but don't return values
- */
-static RuleReturn createVoidRuleReturn() { return createRuleReturn(VOID_TYPE, NO_ERROR, 0.0f); }
-
-/**
- * @brief Create a boolean RuleReturn
- * @param b The boolean value to convert
- * @return RuleReturn with FLOAT_TYPE, 1.0 for true, 0.0 for false
- *
- * The rule engine uses a unified numeric system where booleans
- * are represented as floats: true = 1.0, false = 0.0
- *
- * This allows boolean results to be used in numeric comparisons
- * and enables consistent type handling throughout the system.
- */
-static RuleReturn createBoolRuleReturn(bool b) { return createFloatRuleReturn(b ? 1.0f : 0.0f); }
 
 /**
  * @brief Check if a string is a time literal
@@ -111,12 +29,12 @@ static RuleReturn createBoolRuleReturn(bool b) { return createFloatRuleReturn(b 
  *
  * Time literals are in the format "@HH:MM:SS" (e.g., "@14:30:00").
  * They are used in rules to compare against current time:
- * ["GT", "currentTime", "@18:00:00"]
+ * ["GT", "currentTime", "@18:00:00"] - true if after 6 PM
  */
-static bool jsonIsTimeLiteral(const std::string &s) { return !s.empty() && s[0] == '@'; }
+static bool jsonIsTimeLiteral(const std::string& s) { return !s.empty() && s[0] == '@'; }
 
 /**
- * @brief Parse time literal string to seconds since midnight
+ * @brief Parse a time literal string into seconds since midnight
  * @param timeStr Time string in "@HH:MM:SS" format (e.g., "@14:30:00")
  * @return Time in seconds since midnight, or -1 if parsing failed
  *
@@ -125,12 +43,12 @@ static bool jsonIsTimeLiteral(const std::string &s) { return !s.empty() && s[0] 
  *
  * Examples:
  * - "@14:30:00" returns (14*3600 + 30*60 + 0) = 52200
- * - "@23:59:59" returns (23*3600 + 59*60 + 59) = 86399
- * - "@00:00:00" returns 0
+ * - "@00:00:00" returns 0 (midnight)
+ * - "@23:59:59" returns 86399 (one second before midnight)
  * - Invalid formats return -1
  */
-static int parseTimeLiteral(const std::string &timeStr) {
-    // Check minimum length: "@HH:MM:SS" = 9 characters
+static int parseTimeLiteral(const std::string& timeStr) {
+    // Validate basic format: @HH:MM:SS (9 characters)
     if (timeStr.length() != 9) {
         return -1;
     }
@@ -179,80 +97,74 @@ static int parseTimeLiteral(const std::string &timeStr) {
  *
  * @param doc JSON variant containing the expression to evaluate
  * @param env Environment providing sensor/actuator access and time functions
- * @return RuleReturn containing the result, error information, or actuator reference
+ * @return UnifiedValue containing the result, error information, or actuator reference
  */
-RuleReturn processRuleCore(JsonVariantConst doc, const RuleCoreEnv &env) {
-    // Pre-create a void return for operations that don't return values
-    RuleReturn voidReturn = createVoidRuleReturn();
-
+UnifiedValue processRuleCore(JsonVariantConst doc, const RuleCoreEnv& env) {
     // LITERAL EVALUATION SECTION
     // Handle non-array JSON values: strings, numbers, booleans
     if (!doc.is<JsonArrayConst>()) {
         // STRING LITERAL PROCESSING
-        if (doc.is<const char *>()) {
-            const char *cstr = doc.as<const char *>();
+        if (doc.is<const char*>()) {
+            const char* cstr = doc.as<const char*>();
             std::string str = cstr ? std::string(cstr) : std::string();
 
             // TIME LITERAL: "@HH:MM:SS" format
             if (jsonIsTimeLiteral(str)) {
                 int secs = parseTimeLiteral(str);
-                return secs < 0 ? createErrorRuleReturn(TIME_ERROR) : createIntRuleReturn(secs);
+                return secs < 0 ? UnifiedValue::createError(TIME_ERROR) : UnifiedValue(secs);
             }
 
             // ACTUATOR REFERENCE: Try to resolve as actuator name
-            // Returns BOOL_ACTUATOR_TYPE with setter function for use in SET operations
+            // Returns ACTUATOR_TYPE with setter function for use in SET operations
             if (env.tryGetActuator) {
                 std::function<void(float)> setter;
                 if (env.tryGetActuator(str, setter) && setter) {
-                    RuleReturn r = createRuleReturn(BOOL_ACTUATOR_TYPE, NO_ERROR, 0.0f);
-                    r.actuatorSetter = setter;
-                    return r;
+                    return UnifiedValue::createActuator(setter);
                 }
             }
 
             // VALUE READING: Try to read value (sensors, computed values, etc.)
             if (env.tryReadValue) {
-                ValueTaggedUnion val(0.0f);
+                UnifiedValue val(0.0f);
                 if (env.tryReadValue(str, val)) {
-                    // Convert ValueTaggedUnion to float for backward compatibility
-                    return createFloatRuleReturn(val.asFloat());
+                    return val;  // Return the value as-is (could be any type)
                 }
             }
 
             // UNKNOWN STRING: Not a time literal, value, or actuator
-            return createErrorRuleReturn(UNREC_STR_ERROR);
+            return UnifiedValue::createError(UNREC_STR_ERROR);
         }
         // BOOLEAN LITERAL: true/false converted to 1.0/0.0
         else if (doc.is<bool>()) {
-            return createBoolRuleReturn(doc.as<bool>());
+            return UnifiedValue(doc.as<bool>() ? 1.0f : 0.0f);
         }
-        // INTEGER LITERAL: Converted to float for unified numeric system
+        // INTEGER LITERAL: Converted to int for unified numeric system
         else if (doc.is<int>()) {
-            return createIntRuleReturn(doc.as<int>());
+            return UnifiedValue(doc.as<int>());
         }
         // FLOAT LITERAL: Used directly
         else if (doc.is<float>()) {
-            return createFloatRuleReturn(doc.as<float>());
+            return UnifiedValue(doc.as<float>());
         }
         // UNKNOWN TYPE: JSON type not supported by the rule engine
         else {
-            return createErrorRuleReturn(UNREC_TYPE_ERROR);
+            return UnifiedValue::createError(UNREC_TYPE_ERROR);
         }
     }
 
-    // FUNCTION CALL PROCESSING SECTION
+    // FUNCTION EVALUATION SECTION
     // Handle array-based function calls: ["FUNCTION_NAME", arg1, arg2, ...]
     JsonArrayConst array = doc.as<JsonArrayConst>();
-    const char *type = array[0].as<const char *>();
+    const char* type = array[0].as<const char*>();
     if (!type) {
-        return createErrorRuleReturn(UNREC_FUNC_ERROR);
+        return UnifiedValue::createError(UNREC_FUNC_ERROR);
     }
 
-    // NOP OPERATION: No-operation, returns void
+    // NO-OPERATION: Placeholder function
     // Syntax: ["NOP"]
     // Use case: Placeholder or debugging
     if (std::strcmp(type, "NOP") == 0) {
-        return voidReturn;
+        return UnifiedValue::createVoid();
     }
 
     // CONDITIONAL OPERATION: If-then-else
@@ -260,70 +172,82 @@ RuleReturn processRuleCore(JsonVariantConst doc, const RuleCoreEnv &env) {
     // Evaluates condition; if truthy (> 0), executes then_expr, otherwise else_expr
     // Example: ["IF", ["GT", "temperature", 25], ["SET", "relay_0", 1], ["SET", "relay_0", 0]]
     else if (std::strcmp(type, "IF") == 0) {
-        RuleReturn cond = processRuleCore(array[1], env);
-        if (cond.type == ERROR_TYPE) return cond;
-        if (cond.type != FLOAT_TYPE) return createErrorRuleReturn(IF_CONDITION_ERROR);
-        return cond.val > 0 ? processRuleCore(array[2], env) : processRuleCore(array[3], env);
+        UnifiedValue cond = processRuleCore(array[1], env);
+        if (cond.type == UnifiedValue::ERROR_TYPE) return cond;
+        if (cond.type != UnifiedValue::FLOAT_TYPE && cond.type != UnifiedValue::INT_TYPE) {
+            return UnifiedValue::createError(IF_CONDITION_ERROR);
+        }
+        return cond.asFloat() > 0 ? processRuleCore(array[2], env) : processRuleCore(array[3], env);
     }
 
     // SET OPERATION: Set actuator to a value
     // Syntax: ["SET", actuator_name, value]
-    // First arg must resolve to BOOL_ACTUATOR_TYPE, second to FLOAT_TYPE
+    // First arg must resolve to ACTUATOR_TYPE, second to numeric type
     // Calls the actuator's setter function with the specified value
     // Example: ["SET", "relay_0", 1] - turns on relay_0
     else if (std::strcmp(type, "SET") == 0) {
-        RuleReturn act = processRuleCore(array[1], env);
-        RuleReturn val = processRuleCore(array[2], env);
-        if (act.type == ERROR_TYPE) return act;
-        if (val.type == ERROR_TYPE) return val;
-        if (act.type != BOOL_ACTUATOR_TYPE || val.type != FLOAT_TYPE)
-            return createErrorRuleReturn(BOOL_ACTUATOR_ERROR);
-        if (act.actuatorSetter) act.actuatorSetter(val.val);
-        return voidReturn;
+        UnifiedValue act = processRuleCore(array[1], env);
+        UnifiedValue val = processRuleCore(array[2], env);
+        if (act.type == UnifiedValue::ERROR_TYPE) return act;
+        if (val.type == UnifiedValue::ERROR_TYPE) return val;
+        if (act.type != UnifiedValue::ACTUATOR_TYPE ||
+            (val.type != UnifiedValue::FLOAT_TYPE && val.type != UnifiedValue::INT_TYPE)) {
+            return UnifiedValue::createError(BOOL_ACTUATOR_ERROR);
+        }
+        auto setter = act.getActuatorSetter();
+        if (setter) setter(val.asFloat());
+        return UnifiedValue::createVoid();
     }
 
     // LOGICAL OPERATIONS: AND/OR with short-circuit evaluation
     // Syntax: ["AND", expr1, expr2] or ["OR", expr1, expr2]
-    // Both expressions must evaluate to FLOAT_TYPE (numeric/boolean)
+    // Both expressions must evaluate to numeric types
     // Short-circuit: AND stops if first is false, OR stops if first is true
     // Returns 1.0 for true, 0.0 for false
     else if (std::strcmp(type, "AND") == 0 || std::strcmp(type, "OR") == 0) {
         // Evaluate first operand
-        RuleReturn a = processRuleCore(array[1], env);
-        if (a.type == ERROR_TYPE) return a;
+        UnifiedValue a = processRuleCore(array[1], env);
+        if (a.type == UnifiedValue::ERROR_TYPE) return a;
 
         // Short-circuit evaluation
-        if (std::strcmp(type, "AND") == 0 && !(a.val > 0)) return createBoolRuleReturn(false);
-        if (std::strcmp(type, "OR") == 0 && (a.val > 0)) return createBoolRuleReturn(true);
+        if (std::strcmp(type, "AND") == 0 && !(a.asFloat() > 0)) {
+            return UnifiedValue(0.0f);  // false
+        }
+        if (std::strcmp(type, "OR") == 0 && (a.asFloat() > 0)) {
+            return UnifiedValue(1.0f);  // true
+        }
 
         // Evaluate second operand only if needed
-        RuleReturn b = processRuleCore(array[2], env);
-        if (a.type == ERROR_TYPE) return a;  // Note: this checks 'a' again due to potential bug
-        if (b.type == ERROR_TYPE) return b;
-        if (a.type != FLOAT_TYPE || b.type != FLOAT_TYPE)
-            return createErrorRuleReturn(AND_OR_ERROR);
+        UnifiedValue b = processRuleCore(array[2], env);
+        if (b.type == UnifiedValue::ERROR_TYPE) return b;
+        if ((a.type != UnifiedValue::FLOAT_TYPE && a.type != UnifiedValue::INT_TYPE) ||
+            (b.type != UnifiedValue::FLOAT_TYPE && b.type != UnifiedValue::INT_TYPE)) {
+            return UnifiedValue::createError(AND_OR_ERROR);
+        }
 
         // Perform the logical operation
-        bool result =
-            (std::strcmp(type, "AND") == 0) ? (a.val > 0 && b.val > 0) : (a.val > 0 || b.val > 0);
-        return createBoolRuleReturn(result);
+        bool result = (std::strcmp(type, "AND") == 0) ? (a.asFloat() > 0 && b.asFloat() > 0)
+                                                       : (a.asFloat() > 0 || b.asFloat() > 0);
+        return UnifiedValue(result ? 1.0f : 0.0f);
     }
 
     // NOT OPERATION: Logical negation
     // Syntax: ["NOT", expr]
-    // Expression must evaluate to FLOAT_TYPE
+    // Expression must evaluate to numeric type
     // Returns 1.0 if expr is falsy (≤ 0), 0.0 if expr is truthy (> 0)
     else if (std::strcmp(type, "NOT") == 0) {
-        RuleReturn a = processRuleCore(array[1], env);
-        if (a.type == ERROR_TYPE) return a;
-        if (a.type != FLOAT_TYPE) return createErrorRuleReturn(NOT_ERROR);
-        return createBoolRuleReturn(!(a.val > 0));
+        UnifiedValue a = processRuleCore(array[1], env);
+        if (a.type == UnifiedValue::ERROR_TYPE) return a;
+        if (a.type != UnifiedValue::FLOAT_TYPE && a.type != UnifiedValue::INT_TYPE) {
+            return UnifiedValue::createError(NOT_ERROR);
+        }
+        return UnifiedValue(!(a.asFloat() > 0) ? 1.0f : 0.0f);
     }
 
     // COMPARISON OPERATIONS: EQ, NE, GT, LT, GTE, LTE
     // Syntax: ["OP", expr1, expr2] where OP is one of the comparison operators
-    // Both expressions must evaluate to FLOAT_TYPE
-    // Returns 1.0 for true comparison, 0.0 for false
+    // Both expressions must evaluate to numeric types
+    // Returns 1.0 for true, 0.0 for false
     // Examples:
     //   ["GT", "temperature", 25] - true if temperature > 25
     //   ["EQ", "lightSwitch", 1] - true if switch is on
@@ -331,33 +255,41 @@ RuleReturn processRuleCore(JsonVariantConst doc, const RuleCoreEnv &env) {
     else if (std::strcmp(type, "EQ") == 0 || std::strcmp(type, "NE") == 0 ||
              std::strcmp(type, "GT") == 0 || std::strcmp(type, "LT") == 0 ||
              std::strcmp(type, "GTE") == 0 || std::strcmp(type, "LTE") == 0) {
-        RuleReturn a = processRuleCore(array[1], env);
-        RuleReturn b = processRuleCore(array[2], env);
-        if (a.type == ERROR_TYPE) return a;
-        if (b.type == ERROR_TYPE) return b;
-        if (a.type != FLOAT_TYPE || b.type != FLOAT_TYPE)
-            return createErrorRuleReturn(COMPARISON_TYPE_EQUALITY_ERROR);
+        UnifiedValue a = processRuleCore(array[1], env);
+        UnifiedValue b = processRuleCore(array[2], env);
+        if (a.type == UnifiedValue::ERROR_TYPE) return a;
+        if (b.type == UnifiedValue::ERROR_TYPE) return b;
+
+        // For EQ and NE, allow string comparisons
+        if (std::strcmp(type, "EQ") == 0) {
+            return UnifiedValue((a == b) ? 1.0f : 0.0f);
+        }
+        if (std::strcmp(type, "NE") == 0) {
+            return UnifiedValue((a != b) ? 1.0f : 0.0f);
+        }
+
+        // For ordering comparisons, require numeric types
+        if ((a.type != UnifiedValue::FLOAT_TYPE && a.type != UnifiedValue::INT_TYPE) ||
+            (b.type != UnifiedValue::FLOAT_TYPE && b.type != UnifiedValue::INT_TYPE)) {
+            return UnifiedValue::createError(COMPARISON_TYPE_ERROR);
+        }
 
         // Perform the appropriate comparison
         bool res = false;
-        if (std::strcmp(type, "EQ") == 0)
-            res = a.val == b.val;  // Equal
-        else if (std::strcmp(type, "NE") == 0)
-            res = a.val != b.val;  // Not equal
-        else if (std::strcmp(type, "GT") == 0)
-            res = a.val > b.val;  // Greater than
+        if (std::strcmp(type, "GT") == 0)
+            res = a > b;
         else if (std::strcmp(type, "LT") == 0)
-            res = a.val < b.val;  // Less than
+            res = a < b;
         else if (std::strcmp(type, "GTE") == 0)
-            res = a.val >= b.val;  // Greater than or equal
+            res = a >= b;
         else if (std::strcmp(type, "LTE") == 0)
-            res = a.val <= b.val;  // Less than or equal
+            res = a <= b;
 
-        return createBoolRuleReturn(res);
+        return UnifiedValue(res ? 1.0f : 0.0f);
     }
 
     // UNKNOWN FUNCTION: Function name not recognized
-    return createErrorRuleReturn(UNREC_FUNC_ERROR);
+    return UnifiedValue::createError(UNREC_FUNC_ERROR);
 }
 
 /**
@@ -370,7 +302,7 @@ RuleReturn processRuleCore(JsonVariantConst doc, const RuleCoreEnv &env) {
  * AUTOMATIC RELAY CONTROL LOGIC:
  * 1. For rule index i, first set relay_i to "don't care" mode (2.0)
  * 2. Parse and execute the rule
- * 3. If result is FLOAT_TYPE, set relay_i to that value (typically 0.0 or 1.0)
+ * 3. If the rule returns a FLOAT_TYPE/INT_TYPE result, automatically sets relay_i to that value
  * 4. If result is VOID_TYPE, no automatic control (explicit SET commands handled)
  * 5. If result is ERROR_TYPE, log error but don't change relay state
  *
@@ -382,20 +314,20 @@ RuleReturn processRuleCore(JsonVariantConst doc, const RuleCoreEnv &env) {
  * @param ruleCount Number of rules in the array
  * @param env Environment context providing sensor/actuator access
  */
-void processRuleSet(const std::string rules[], int ruleCount, const RuleCoreEnv &env) {
+void processRuleSet(const std::string rules[], int ruleCount, const RuleCoreEnv& env) {
     // Process each rule in sequence
     for (int i = 0; i < ruleCount; i++) {
         // RELAY INITIALIZATION: Set relay to "don't care" mode before processing
         // This allows the rule to take full control of the relay state
-        // Value 2.0 means "auto mode" - neither forced on nor forced off
         if (env.tryGetActuator) {
-            std::function<void(float)> setter;
-            if (env.tryGetActuator("relay_" + std::to_string(i), setter) && setter) {
-                setter(2.0f);
+            std::function<void(float)> setActuator;
+            std::string actuatorName = "relay_" + std::to_string(i);
+            if (env.tryGetActuator(actuatorName, setActuator) && setActuator) {
+                setActuator(2.0f);  // "don't care" mode
             }
         }
 
-        // JSON PARSING: Convert rule string to JSON document
+        // RULE PARSING: Convert JSON string to document
         DynamicJsonDocument doc(1024);
         DeserializationError error = deserializeJson(doc, rules[i].c_str());
 
@@ -409,34 +341,33 @@ void processRuleSet(const std::string rules[], int ruleCount, const RuleCoreEnv 
             continue;
         }
 
-        // RULE EXECUTION: Process the parsed rule using the core engine
-        RuleReturn result = processRuleCore(doc, env);
+        // RULE EXECUTION: Process the parsed rule
+        UnifiedValue result = processRuleCore(doc.as<JsonVariantConst>(), env);
 
         // RESULT HANDLING: Different actions based on return type
-        if (result.type == FLOAT_TYPE) {
+        if (result.type == UnifiedValue::FLOAT_TYPE || result.type == UnifiedValue::INT_TYPE) {
 // AUTOMATIC RELAY CONTROL: Set corresponding relay to the result value
 // This implements the "simple rule" pattern where expressions like
 // ["GT", "temperature", 25] automatically control relay_i
 #ifdef ARDUINO
-            Serial.println("Setting actuator: " + String(i) + " to: " + String(result.val));
+            Serial.println("Setting actuator: " + String(i) + " to: " + String(result.asFloat()));
 #endif
 
             if (env.tryGetActuator) {
                 std::function<void(float)> setter;
-                if (env.tryGetActuator("relay_" + std::to_string(i), setter) && setter) {
-                    setter(result.val);
+                std::string actuatorName = "relay_" + std::to_string(i);
+                if (env.tryGetActuator(actuatorName, setter) && setter) {
+                    setter(result.asFloat());
                 }
             }
-        } else if (result.type != VOID_TYPE) {
+        } else if (result.type != UnifiedValue::VOID_TYPE) {
 // ERROR HANDLING: Log unexpected results (errors, unknown types)
 // VOID_TYPE is expected for SET/NOP operations and doesn't trigger logging
 #ifdef ARDUINO
             Serial.println("Unexpected rule result: ");
-            // Note: printRuleReturn is Arduino-specific, keep in rule_helpers.cpp
-            Serial.println("RuleReturn:");
-            Serial.println("\ttype: " + String(result.type));
-            Serial.println("\terrorCode: " + String(result.errorCode));
-            Serial.println("\tval: " + String(result.val));
+            Serial.println("\ttype: " + String(static_cast<int>(result.type)));
+            Serial.println("\terrorCode: " + String(static_cast<int>(result.errorCode)));
+            Serial.println("\tval: " + String(result.asFloat()));
 #endif
         }
         // VOID_TYPE results are successful no-ops (from SET, NOP), continue silently
