@@ -8,6 +8,7 @@
 #include "definitions.h"
 #include "interval_timer.h"
 #include "registry_functions.h"
+#include "unified_value.h"
 
 /**
  * This file contains the logic for processing relay rules using the new function registry system.
@@ -72,20 +73,6 @@ void setRelay(int index, float value) {
     RELAY_VALUES[index] = static_cast<RelayValue>(newValue);
 }
 
-float getTemperature() { return CURRENT_TEMPERATURE; }
-
-float getHumidity() { return CURRENT_HUMIDITY; }
-
-float getPhotoSensor() {
-    float out = LIGHT_LEVEL;
-    return out;
-}
-
-float getLightSwitch() {
-    float out = IS_SWITCH_ON;
-    return out;
-}
-
 std::function<void(float)> getActuatorSetter(String name) {
     String relayPrefix = "relay_";
     if (name.startsWith(relayPrefix)) {
@@ -96,26 +83,34 @@ std::function<void(float)> getActuatorSetter(String name) {
     return 0;
 }
 
-/**
- * Get the current time in minutes
- */
-int getCurrentSeconds() {
-    struct tm timeinfo;
-    if (!getLocalTime(&timeinfo)) {
-        Serial.println("Failed to obtain time");
-        return -1;
+void printUnifiedValue(UnifiedValue result) {
+    Serial.println("UnifiedValue:");
+    Serial.println("\ttype: " + String(static_cast<int>(result.type)));
+    if (result.type == UnifiedValue::ERROR_TYPE) {
+        Serial.println("\terrorCode: " + String(static_cast<int>(result.errorCode)));
+        Serial.println("\terrorString: " + String(result.asString()));
+    } else {
+        switch (result.type) {
+            case UnifiedValue::FLOAT_TYPE:
+                Serial.println("\tfloatValue: " + String(result.asFloat()));
+                break;
+            case UnifiedValue::INT_TYPE:
+                Serial.println("\tintValue: " + String(result.asInt()));
+                break;
+            case UnifiedValue::STRING_TYPE:
+                Serial.println("\tstringValue: " + String(result.asString()));
+                break;
+            case UnifiedValue::VOID_TYPE:
+                Serial.println("\tvoidType (success)");
+                break;
+            case UnifiedValue::ACTUATOR_TYPE:
+                Serial.println("\tactuatorType");
+                break;
+            default:
+                Serial.println("\tunknown type");
+                break;
+        }
     }
-    int hours = timeinfo.tm_hour;
-    int minutes = timeinfo.tm_min;
-    int seconds = timeinfo.tm_sec;
-    return (hours * 60 * 60) + (minutes * 60) + seconds;
-}
-
-void printRuleReturn(RuleReturn result) {
-    Serial.println("RuleReturn:");
-    Serial.println("\ttype: " + String(result.type));
-    Serial.println("\terrorCode: " + String(result.errorCode));
-    Serial.println("\val: " + String(result.val));
 }
 
 /**

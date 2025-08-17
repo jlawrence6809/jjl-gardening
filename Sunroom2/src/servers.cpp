@@ -10,7 +10,6 @@
     #include <vector>
     #include "../preact/build/static_files.h"
     #include "analog_helpers.h"
-    #include "automation_dsl/types.h"
     #include "definitions.h"
     #include "json.h"
     #include "peripheral_controls.h"
@@ -20,6 +19,9 @@
     #include "time.h"
     #include "time_helpers.h"
     #include "units.h"
+
+// Forward declaration of processAutomationDsl from automation_dsl/bridge.cpp
+void processAutomationDsl();
 
 bool POST_PARAM = true;
 bool GET_PARAM = false;

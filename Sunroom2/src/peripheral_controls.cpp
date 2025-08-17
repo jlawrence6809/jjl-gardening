@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <time.h>
-#include "automation_dsl/types.h"
 #include "definitions.h"
 #include "interval_timer.h"
 #include "time_helpers.h"
@@ -65,8 +64,7 @@ void photoSensorSetup() {
     // analog for PHOTO_SENSOR_PIN
     pinMode(PHOTO_SENSOR_PIN, INPUT);
 
-    // analog setup:
-    adcAttachPin(PHOTO_SENSOR_PIN);
+    // Note: adcAttachPin is no longer needed in newer ESP32 frameworks
 
     // analog read, not sure if this is necessary???
     int value = analogRead(PHOTO_SENSOR_PIN);
