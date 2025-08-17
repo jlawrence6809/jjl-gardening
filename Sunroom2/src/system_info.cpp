@@ -1,14 +1,13 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <map>
-#include "esp_timer.h"
 #include "definitions.h"
-#include "time_helpers.h"
+#include "esp_timer.h"
 #include "json.h"
+#include "time_helpers.h"
 #include "units.h"
 
-std::map<String, String> collectSystemInfo()
-{
+std::map<String, String> collectSystemInfo() {
     std::map<String, String> info;
 
     // Keep global in sync
@@ -30,8 +29,7 @@ std::map<String, String> collectSystemInfo()
 
     // Optional WiFi details when connected
     info["WiFiStatus"] = String(WiFi.status());
-    if (WiFi.status() == WL_CONNECTED)
-    {
+    if (WiFi.status() == WL_CONNECTED) {
         info["WiFiRSSI"] = String(WiFi.RSSI());
         info["IPAddress"] = WiFi.localIP().toString();
         info["SSID"] = WiFi.SSID();
@@ -40,9 +38,4 @@ std::map<String, String> collectSystemInfo()
     return info;
 }
 
-String systemInfoJson()
-{
-    return buildJson(collectSystemInfo());
-}
-
-
+String systemInfoJson() { return buildJson(collectSystemInfo()); }

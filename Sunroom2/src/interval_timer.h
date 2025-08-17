@@ -1,12 +1,11 @@
 #pragma once
 
-class Timer
-{
-private:
+class Timer {
+  private:
     unsigned long lastChecked;
     unsigned long checkInterval;
 
-public:
+  public:
     Timer(unsigned long interval, bool runOnStart = true);
     bool isIntervalPassed();
 };

@@ -8,5 +8,3 @@ std::map<String, String> collectSystemInfo();
 
 // Convenience: builds JSON string from system info
 String systemInfoJson();
-
-

@@ -1,0 +1,113 @@
+# clang-format configuration for ESP32/Arduino C++ project
+# Based on Google style with Arduino-friendly modifications
+
+BasedOnStyle: Google
+
+# Language and standard
+Language: Cpp
+Standard: c++17
+
+# Indentation
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+AccessModifierOffset: -2
+IndentCaseLabels: true
+IndentPPDirectives: BeforeHash
+
+# Line length and wrapping
+ColumnLimit: 100
+ReflowComments: true
+BreakBeforeBraces: Attach
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+BreakInheritanceList: BeforeColon
+
+# Spacing
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+SpaceAfterTemplateKeyword: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeParens: ControlStatements
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 2
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: true
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# Alignment
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignEscapedNewlines: Left
+AlignOperands: true
+AlignTrailingComments: true
+
+# Function and parameter formatting
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+
+# Include sorting and organization
+SortIncludes: true
+IncludeBlocks: Preserve
+IncludeCategories:
+  # Arduino/ESP32 framework headers
+  - Regex: '^<(Arduino|WiFi|WebServer|ESP|esp_|freertos/)'
+    Priority: 1
+  # Standard library headers
+  - Regex: '^<[[:alnum:].]+>'
+    Priority: 2
+  # Third-party library headers
+  - Regex: '^<[[:alnum:]_/]+\.h>'
+    Priority: 3
+  # Local project headers
+  - Regex: '^".*"'
+    Priority: 4
+
+# Pointer and reference alignment
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# Namespace formatting
+NamespaceIndentation: None
+CompactNamespaces: false
+
+# Constructor initializer lists
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+ConstructorInitializerIndentWidth: 4
+
+# Template formatting
+AlwaysBreakTemplateDeclarations: Yes
+
+# Comments
+CommentPragmas: '^ IWYU pragma:'
+
+# Penalties for breaking (lower = more likely to break)
+PenaltyBreakAssignment: 2
+PenaltyBreakBeforeFirstCallParameter: 1
+PenaltyBreakComment: 300
+PenaltyBreakFirstLessLess: 120
+PenaltyBreakString: 1000
+PenaltyExcessCharacter: 1000000
+PenaltyReturnTypeOnItsOwnLine: 200
+
+# Bin packing
+BinPackArguments: true
+BinPackParameters: true
+
+# Experimental features
+ExperimentalAutoDetectBinPacking: false
+
+# Macro handling
+MacroBlockBegin: ''
+MacroBlockEnd: ''
