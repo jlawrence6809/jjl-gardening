@@ -40,6 +40,7 @@ echo "[native-tests] Building with $CXX_BIN..."
 "$CXX_BIN" -std=c++17 -O2 \
   -I"$INC_DIR" -I"$GTEST_INC_DIR" \
   src/automation_dsl/core.cpp \
+  src/automation_dsl/time_helpers.cpp \
   tests_native/rule_core_runner.cpp \
   tests_native/unified_value_tests.cpp \
   -L"$GTEST_LIB_DIR" -lgtest -lgtest_main -lpthread \
