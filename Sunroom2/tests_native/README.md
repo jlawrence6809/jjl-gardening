@@ -12,8 +12,8 @@ Native tests are useful for testing platform-neutral code that doesn't depend on
   - Type construction, conversion, and validation
   - Error handling and edge cases
   - Memory management
-  
 - **`function_registry_tests.cpp`**: Tests the function registry system
+
   - Core function implementations (GT, LT, EQ, AND, OR, NOT, IF, SET, NOP)
   - Sensor function integration
   - Error handling and validation
@@ -85,6 +85,7 @@ TEST_F(MyTest, SomeFeature) {
 ## Mock System
 
 Tests use a shared mock system defined in:
+
 - `test_mocks.h` - Mock declarations
 - `test_mocks.cpp` - Mock implementations
 
@@ -93,6 +94,7 @@ This provides consistent mock sensors and actuators across all test files.
 ## Platform Independence
 
 Tests avoid Arduino dependencies and use:
+
 - `std::string` instead of Arduino `String`
 - `std::function` instead of Arduino function types
 - Standard C++ I/O instead of `Serial`

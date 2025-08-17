@@ -47,7 +47,8 @@ float readTFahFromADC(int pin) {
 }
 
 float setDAC(int v) {
-    dacWrite(25, v);
+    // todo: there is no DAC on the ESP32-C3
+    // dacWrite(25, v);
     float out = 3.3 * (v / 255.0);
     // corrections
     if (CHIP_ID == DEVICE_1) {
