@@ -227,7 +227,7 @@ UnifiedValue processRuleCore(JsonVariantConst doc, const RuleCoreEnv& env) {
 
         // Perform the logical operation
         bool result = (std::strcmp(type, "AND") == 0) ? (a.asFloat() > 0 && b.asFloat() > 0)
-                                                       : (a.asFloat() > 0 || b.asFloat() > 0);
+                                                      : (a.asFloat() > 0 || b.asFloat() > 0);
         return UnifiedValue(result ? 1.0f : 0.0f);
     }
 

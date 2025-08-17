@@ -28,24 +28,24 @@ enum ErrorCode {
     NO_ERROR = 0,
 
     // Value conversion errors
-    PARSE_ERROR,              ///< String->number conversion failed
-    TYPE_CONVERSION_ERROR,    ///< Invalid type conversion requested
+    PARSE_ERROR,            ///< String->number conversion failed
+    TYPE_CONVERSION_ERROR,  ///< Invalid type conversion requested
 
     // Rule execution errors
-    UNREC_TYPE_ERROR,         ///< Unknown JSON type
-    UNREC_FUNC_ERROR,         ///< Unknown function name
-    UNREC_STR_ERROR,          ///< Unknown string identifier
-    IF_CONDITION_ERROR,       ///< IF condition not boolean
-    BOOL_ACTUATOR_ERROR,      ///< SET operation type mismatch
-    AND_OR_ERROR,             ///< AND/OR operand type error
-    NOT_ERROR,                ///< NOT operand type error
-    COMPARISON_TYPE_ERROR,    ///< Comparison operand type error
-    TIME_ERROR,               ///< Time literal parsing error
-    UNREC_ACTUATOR_ERROR,     ///< Unknown actuator name
+    UNREC_TYPE_ERROR,       ///< Unknown JSON type
+    UNREC_FUNC_ERROR,       ///< Unknown function name
+    UNREC_STR_ERROR,        ///< Unknown string identifier
+    IF_CONDITION_ERROR,     ///< IF condition not boolean
+    BOOL_ACTUATOR_ERROR,    ///< SET operation type mismatch
+    AND_OR_ERROR,           ///< AND/OR operand type error
+    NOT_ERROR,              ///< NOT operand type error
+    COMPARISON_TYPE_ERROR,  ///< Comparison operand type error
+    TIME_ERROR,             ///< Time literal parsing error
+    UNREC_ACTUATOR_ERROR,   ///< Unknown actuator name
 
     // Sensor/hardware errors (future)
-    SENSOR_READ_ERROR,        ///< Hardware sensor failure
-    ACTUATOR_SET_ERROR        ///< Hardware actuator failure
+    SENSOR_READ_ERROR,  ///< Hardware sensor failure
+    ACTUATOR_SET_ERROR  ///< Hardware actuator failure
 };
 
 /**
@@ -89,14 +89,14 @@ struct UnifiedValue {
      */
     enum Type {
         // Value types (input data)
-        FLOAT_TYPE,       ///< Floating-point values (temperature, humidity, etc.)
-        INT_TYPE,         ///< Integer values (counts, time, discrete states)
-        STRING_TYPE,      ///< String values (status, modes, messages)
+        FLOAT_TYPE,   ///< Floating-point values (temperature, humidity, etc.)
+        INT_TYPE,     ///< Integer values (counts, time, discrete states)
+        STRING_TYPE,  ///< String values (status, modes, messages)
 
         // Execution types (results)
-        VOID_TYPE,        ///< Successful operations with no return value
-        ACTUATOR_TYPE,    ///< Actuator reference with setter function
-        ERROR_TYPE        ///< Any kind of error
+        VOID_TYPE,      ///< Successful operations with no return value
+        ACTUATOR_TYPE,  ///< Actuator reference with setter function
+        ERROR_TYPE      ///< Any kind of error
     } type;
 
     /**
@@ -112,10 +112,10 @@ struct UnifiedValue {
      * @brief Union for storage of different value types
      */
     union ValueUnion {
-        float f;                           ///< Float value storage
-        int i;                             ///< Integer value storage
-        std::string s;                     ///< String value storage (owned copy)
-        std::function<void(float)> fn;     ///< Actuator setter function
+        float f;                        ///< Float value storage
+        int i;                          ///< Integer value storage
+        std::string s;                  ///< String value storage (owned copy)
+        std::function<void(float)> fn;  ///< Actuator setter function
 
         // Default constructor for union
         ValueUnion() : f(0.0f) {}
@@ -248,7 +248,7 @@ struct UnifiedValue {
             case ERROR_TYPE:
                 return 0.0f;
         }
-        return 0.0f; // Fallback
+        return 0.0f;  // Fallback
     }
 
     /**
@@ -274,7 +274,7 @@ struct UnifiedValue {
             case ERROR_TYPE:
                 return 0;
         }
-        return 0; // Fallback
+        return 0;  // Fallback
     }
 
     /**
@@ -303,7 +303,7 @@ struct UnifiedValue {
             case ERROR_TYPE:
                 return errorToString(errorCode);
         }
-        return ""; // Fallback
+        return "";  // Fallback
     }
 
     /**
@@ -439,7 +439,7 @@ struct UnifiedValue {
 
         // Strict validation: entire string must convert successfully
         if (endPtr == str || *endPtr != '\0') {
-            return 0.0f; // No conversion or partial conversion
+            return 0.0f;  // No conversion or partial conversion
         }
 
         return result;
@@ -487,7 +487,7 @@ struct UnifiedValue {
      * @brief Convert float to string representation
      */
     static const char* floatToString(float val) {
-        static char buffer[32]; // Static buffer, not thread-safe
+        static char buffer[32];  // Static buffer, not thread-safe
         snprintf(buffer, sizeof(buffer), "%.3f", val);
         return buffer;
     }
@@ -496,7 +496,7 @@ struct UnifiedValue {
      * @brief Convert integer to string representation
      */
     static const char* intToString(int val) {
-        static char buffer[16]; // Static buffer, not thread-safe
+        static char buffer[16];  // Static buffer, not thread-safe
         snprintf(buffer, sizeof(buffer), "%d", val);
         return buffer;
     }

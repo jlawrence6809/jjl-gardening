@@ -7,7 +7,6 @@
 #include "definitions.h"
 #include "interval_timer.h"
 
-
 /**
  * This file contains the logic for processing the relay rules
  * Here are some possible rules:
@@ -125,29 +124,29 @@ void processAutomationDsl() {
 
     // Bridge to reusable, platform-neutral core evaluator
     RuleCoreEnv env{};
-         env.tryReadValue = [](const std::string &name, UnifiedValue &out) {
-         if (name == "temperature") {
-             out = UnifiedValue(getTemperature());
-             return true;
-         }
-         if (name == "humidity") {
-             out = UnifiedValue(getHumidity());
-             return true;
-         }
-         if (name == "photoSensor") {
-             out = UnifiedValue(getPhotoSensor());
-             return true;
-         }
-         if (name == "lightSwitch") {
-             out = UnifiedValue(getLightSwitch());
-             return true;
-         }
-         if (name == "currentTime") {
-             out = UnifiedValue(getCurrentSeconds());
-             return true;
-         }
-         return false;
-     };
+    env.tryReadValue = [](const std::string &name, UnifiedValue &out) {
+        if (name == "temperature") {
+            out = UnifiedValue(getTemperature());
+            return true;
+        }
+        if (name == "humidity") {
+            out = UnifiedValue(getHumidity());
+            return true;
+        }
+        if (name == "photoSensor") {
+            out = UnifiedValue(getPhotoSensor());
+            return true;
+        }
+        if (name == "lightSwitch") {
+            out = UnifiedValue(getLightSwitch());
+            return true;
+        }
+        if (name == "currentTime") {
+            out = UnifiedValue(getCurrentSeconds());
+            return true;
+        }
+        return false;
+    };
     // Set up actuator lookup function for rule processing system
     env.tryGetActuator = [](const std::string &name, std::function<void(float)> &setter) {
         // Define prefix for relay actuators
