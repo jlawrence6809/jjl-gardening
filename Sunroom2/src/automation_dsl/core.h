@@ -5,7 +5,7 @@
 #include <string>
 
 #include "types.h"        // Reuse TypeCode, ErrorCode, RuleReturn
-#include "value_types.h"  // Variant type for sensor values
+#include "value_tagged_union.h"  // Variant type for sensor values
 
 /**
  * @file rule_core.h

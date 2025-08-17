@@ -6,7 +6,7 @@
 #include <ArduinoJson.h>
 
 #include "../src/automation_dsl/core.h"
-#include "../src/automation_dsl/value_types.h"
+#include "../src/automation_dsl/value_tagged_union.h"
 
 // ANSI color codes
 #define COLOR_RESET   "\033[0m"

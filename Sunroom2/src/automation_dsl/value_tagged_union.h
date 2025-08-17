@@ -4,7 +4,7 @@
 #include <string>
 
 /**
- * @file sensor_value.h
+ * @file value_tagged_union.h
  * @brief Variant type system for sensor values supporting floats, integers, and strings
  *
  * This file implements a flexible variant type that can hold different sensor value types

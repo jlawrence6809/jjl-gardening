@@ -21,7 +21,7 @@
 #include "core.h"
 #include <cstring>
 #include <string>
-#include "value_types.h"
+#include "value_tagged_union.h"
 
 /**
  * @brief Create a RuleReturn structure with specified parameters

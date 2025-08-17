@@ -7,7 +7,7 @@
 #include "definitions.h"
 #include "interval_timer.h"
 #include "types.h"
-#include "value_types.h"
+#include "value_tagged_union.h"
 
 /**
  * This file contains the logic for processing the relay rules
